@@ -18,10 +18,15 @@ const ManageStudents = () => {
   const user = JSON.parse(localStorage.getItem('auth_user') || '{}');
 
   const fetchStudents = async () => {
+    const userId = user.id || user._id;
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      if (!user.id) return;
-      const response = await fetch(`/api/company/students/${user.id}`);
+      const response = await fetch(`/api/company/students/${userId}`);
       if (!response.ok) throw new Error('Failed to fetch students');
       const data = await response.json();
       setStudents(data);
@@ -34,26 +39,46 @@ const ManageStudents = () => {
   };
 
   useEffect(() => {
-     const savedCourses = JSON.parse(localStorage.getItem('courses'));
-     setAvailableCourses(savedCourses || defaultCourses);
-     
-     const savedLicenses = JSON.parse(localStorage.getItem('companyLicenses')) || {};
-     setLicenses(savedLicenses);
+     const fetchInitialData = async () => {
+       try {
+         // Fetch real courses
+         const coursesRes = await fetch('/api/courses');
+         if (coursesRes.ok) {
+           const coursesData = await coursesRes.json();
+           setAvailableCourses(coursesData);
+         }
 
-     fetchStudents();
-  }, [user.id]);
+         // Load licenses
+         const savedLicenses = JSON.parse(localStorage.getItem('companyLicenses')) || {};
+         setLicenses(savedLicenses);
+
+         // Fetch students
+         await fetchStudents();
+       } catch (err) {
+         console.error('Error fetching initial data:', err);
+       }
+     };
+
+     fetchInitialData();
+  }, [user.id, user._id]);
 
   const handleAddStudent = async (e) => {
     e.preventDefault();
     setErrorHeader('');
     
+    const userId = user.id || user._id;
+    if (!userId) {
+      setErrorHeader('User session expired. Please log in again.');
+      return;
+    }
+
     try {
       // 1. Link student in backend
       const response = await fetch('/api/company/add-student', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          companyId: user.id,
+          companyId: userId,
           studentEmail: newStudent.email
         })
       });
@@ -295,12 +320,18 @@ const ManageStudents = () => {
                          onChange={(e) => setNewStudent({...newStudent, course: e.target.value})}
                          className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-600 outline-none focus:ring-2 focus:ring-[#59B1C9]/20 cursor-pointer"
                        >
-                         <option value="">Enroll without course...</option>
-                         {Object.values(licenses).filter(l => l.count > (l.used || 0)).map(l => (
-                            <option key={l.title} value={l.title}>
-                               {l.title} ({l.count - (l.used || 0)} seats left)
-                            </option>
-                         ))}
+                                                  <option value="">Enroll without course...</option>
+                         {availableCourses.map(course => {
+                            const cId = course._id || course.id;
+                            const license = licenses[cId] || { count: 0, used: 0 };
+                            const seatsLeft = Math.max(0, license.count - (license.used || 0));
+                            
+                            return (
+                               <option key={cId} value={course.title}>
+                                  {course.title} ({seatsLeft} seats left)
+                               </option>
+                            );
+                         })}
                        </select>
                        <p className="text-[10px] text-slate-400 ml-1">Only courses with available licenses are shown.</p>
 
@@ -340,17 +371,24 @@ const ManageStudents = () => {
                          onChange={(e) => setNewStudent({...newStudent, course: e.target.value})}
                          className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-600 outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
                        >
-                         <option value="">Choose a course...</option>
-                         {Object.values(licenses).filter(l => l.count > (l.used || 0)).map(l => (
-                            <option 
-                              key={l.title} 
-                              value={l.title} 
-                              disabled={selectedStudent.courses.some(sc => sc.title === l.title)}
-                            >
-                              {l.title} ({l.count - (l.used || 0)} seats left)
-                              {selectedStudent.courses.some(sc => sc.title === l.title) ? ' — Already Enrolled' : ''}
-                            </option>
-                         ))}
+                                                  <option value="">Choose a course...</option>
+                         {availableCourses.map(course => {
+                            const cId = course._id || course.id;
+                            const license = licenses[cId] || { count: 0, used: 0 };
+                            const seatsLeft = Math.max(0, license.count - (license.used || 0));
+                            const isEnrolled = selectedStudent?.courses?.some(sc => sc.title === course.title);
+
+                            return (
+                               <option 
+                                 key={cId} 
+                                 value={course.title} 
+                                 disabled={isEnrolled}
+                               >
+                                 {course.title} ({seatsLeft} seats left)
+                                 {isEnrolled ? ' — Already Enrolled' : ''}
+                               </option>
+                            );
+                         })}
                        </select>
 
                     </div>

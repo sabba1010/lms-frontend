@@ -70,7 +70,7 @@ const CheckoutPage = () => {
           .filter(Boolean);
 
         if (courseIds.length > 0) {
-          const res = await fetch('http://localhost:5000/api/payments/enroll', {
+          const res = await fetch('/api/payments/enroll', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: user.id, courseIds }),

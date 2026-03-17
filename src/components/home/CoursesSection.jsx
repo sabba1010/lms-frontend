@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FiShoppingCart, FiEye, FiSearch, FiX } from 'react-icons/fi';
 // API URL
-const API_URL = 'http://localhost:5000/api/courses';
+const API_URL = '/api/courses';
 
 import { useCart } from '../../context/CartContext';
 import Swal from 'sweetalert2';

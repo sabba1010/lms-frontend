@@ -6,11 +6,11 @@ import {
 } from 'react-icons/fi';
 import Swal from 'sweetalert2';
 
-const API_URL = 'http://localhost:5000/api/courses';
+const API_URL = '/api/courses';
 
 const CATEGORY_OPTIONS = ['adult', 'children'];
 
-const SCORM_API = 'http://localhost:5000/api/scorm';
+const SCORM_API = '/api/scorm';
 
 const EMPTY_FORM = {
   title: '',

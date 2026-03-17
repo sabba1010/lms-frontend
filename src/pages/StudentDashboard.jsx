@@ -19,7 +19,7 @@ import Schedule from '../components/dashboard/Schedule';
 import MyCertificates from '../components/dashboard/MyCertificates';
 import EditAccount from '../components/dashboard/EditAccount';
 
-const PAYMENTS_API = 'http://localhost:5000/api/payments';
+const PAYMENTS_API = '/api/payments';
 
 const StudentDashboard = () => {
   const navigate = useNavigate();

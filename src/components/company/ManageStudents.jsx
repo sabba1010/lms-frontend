@@ -105,15 +105,16 @@ const ManageStudents = () => {
              })
            });
            
-           if (enrollRes.ok) {
-              const updatedLicenses = { ...licenses };
-              const cId = course._id || course.id;
-              if (updatedLicenses[cId]) {
-                 updatedLicenses[cId].used = (updatedLicenses[cId].used || 0) + 1;
-                 setLicenses(updatedLicenses);
-                 localStorage.setItem('companyLicenses', JSON.stringify(updatedLicenses));
-              }
-           }
+            if (enrollRes.ok) {
+               // Update License for tracking if it exists, but don't block
+               const updatedLicenses = { ...licenses };
+               const cId = course._id || course.id;
+               if (updatedLicenses[cId]) {
+                  updatedLicenses[cId].used = (updatedLicenses[cId].used || 0) + 1;
+                  setLicenses(updatedLicenses);
+                  localStorage.setItem('companyLicenses', JSON.stringify(updatedLicenses));
+               }
+            }
         }
       }
 
@@ -139,12 +140,7 @@ const ManageStudents = () => {
       if (!course) throw new Error('Course not found');
 
       const cId = course._id || course.id;
-      const license = licenses[cId];
-
-      if (!license || license.used >= license.count) {
-        throw new Error(`No seats available for "${newStudent.course}".`);
-      }
-
+      // Proceed with enrollment directly
       const response = await fetch('/api/payments/enroll', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -159,11 +155,13 @@ const ManageStudents = () => {
         throw new Error(data.error || 'Failed to assign course');
       }
 
-      // Update License
+      // Update License tracking if it exists
       const updatedLicenses = { ...licenses };
-      updatedLicenses[cId].used = (updatedLicenses[cId].used || 0) + 1;
-      setLicenses(updatedLicenses);
-      localStorage.setItem('companyLicenses', JSON.stringify(updatedLicenses));
+      if (updatedLicenses[cId]) {
+        updatedLicenses[cId].used = (updatedLicenses[cId].used || 0) + 1;
+        setLicenses(updatedLicenses);
+        localStorage.setItem('companyLicenses', JSON.stringify(updatedLicenses));
+      }
 
       setIsAssignModalOpen(false);
       setNewStudent({ ...newStudent, course: '' });

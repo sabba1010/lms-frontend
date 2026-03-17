@@ -5,7 +5,7 @@ import Footer from '../components/Footer';
 import { useCart } from '../context/CartContext';
 import Swal from 'sweetalert2';
 // API URL
-const API_URL = 'http://localhost:5000/api/courses';
+const API_URL = '/api/courses';
 
 // Import your local banner asset
 import sectionBg from '../assets/section-bg-23.png';

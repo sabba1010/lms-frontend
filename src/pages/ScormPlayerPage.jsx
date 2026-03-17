@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiMaximize2, FiMinimize2, FiLoader } from 'react-icons/fi';
 
-const SCORM_API = 'http://localhost:5000/api/scorm';
-const COURSES_API = 'http://localhost:5000/api/courses';
+const SCORM_API = '/api/scorm';
+const COURSES_API = '/api/courses';
 
 const ScormPlayerPage = () => {
   const { courseId } = useParams();

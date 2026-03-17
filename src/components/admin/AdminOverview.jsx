@@ -8,7 +8,7 @@ import {
 } from 'react-icons/fi';
 import { useState, useEffect } from 'react';
 
-const API_URL = 'http://localhost:5000/api/stats';
+const API_URL = '/api/stats';
 
 const StatCard = ({ title, value, icon, color, trend }) => (
   <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">

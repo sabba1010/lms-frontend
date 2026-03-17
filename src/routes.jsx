@@ -18,6 +18,7 @@ import CheckoutPage from './pages/CheckoutPage';
 import AdminDashboard from './pages/AdminDashboard';
 import CompanyDashboard from './pages/CompanyDashboard';
 import ScormPlayerPage from './pages/ScormPlayerPage';
+import ProtectedRoute from './components/ProtectedRoute';
 
 
 const AppRoutes = () => {

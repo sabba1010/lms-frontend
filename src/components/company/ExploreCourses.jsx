@@ -1,35 +1,52 @@
 import React, { useState, useEffect } from 'react';
-import { FiSearch, FiShoppingCart, FiInfo, FiPlus, FiMinus, FiCheck } from 'react-icons/fi';
-import { courses as defaultCourses } from '../../data/courses';
+import { FiSearch, FiShoppingCart, FiInfo, FiPlus, FiMinus, FiCheck, FiLoader } from 'react-icons/fi';
 
 const ExploreCourses = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [courseList, setCourseList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
-    const savedCourses = JSON.parse(localStorage.getItem('courses'));
-    setCourseList(savedCourses || defaultCourses);
+    const fetchCourses = async () => {
+      try {
+        setLoading(true);
+        // Using the proxy configured in vite.config.js
+        const response = await fetch('/api/courses');
+        if (!response.ok) throw new Error('Failed to fetch courses');
+        const data = await response.json();
+        setCourseList(data);
+      } catch (err) {
+        console.error('Error fetching courses:', err);
+        setError('Could not load course catalog. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
   }, []);
 
   const handleBuyLicenses = () => {
     if (!selectedCourse) return;
-
+    
     const existingLicenses = JSON.parse(localStorage.getItem('companyLicenses')) || {};
-    const current = existingLicenses[selectedCourse.id] || { count: 0, used: 0 };
-
-    existingLicenses[selectedCourse.id] = {
+    const courseId = selectedCourse._id || selectedCourse.id;
+    const current = existingLicenses[courseId] || { count: 0, used: 0 };
+    
+    existingLicenses[courseId] = {
       ...current,
       count: current.count + quantity,
       title: selectedCourse.title,
       image: selectedCourse.image || selectedCourse.img,
       price: selectedCourse.price
     };
-
+    
     localStorage.setItem('companyLicenses', JSON.stringify(existingLicenses));
-
+    
     setShowSuccess(true);
     setTimeout(() => {
       setShowSuccess(false);
@@ -38,9 +55,33 @@ const ExploreCourses = () => {
     }, 2000);
   };
 
-  const filtered = courseList.filter(c =>
-    c.title.toLowerCase().includes(searchTerm.toLowerCase())
+  const filtered = (courseList || []).filter(c => 
+    c.title?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-[400px] flex flex-col items-center justify-center gap-4">
+        <FiLoader className="w-10 h-10 animate-spin text-primary" />
+        <p className="text-slate-500 font-bold">Loading course catalog...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-[400px] flex flex-col items-center justify-center gap-4 text-center">
+        <div className="text-4xl">⚠️</div>
+        <p className="text-red-500 font-bold">{error}</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="px-6 py-2 bg-primary text-white rounded-xl font-bold"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in relative">
@@ -66,7 +107,7 @@ const ExploreCourses = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filtered.map((course) => (
-          <div key={course.id} className="bg-white rounded-3xl border border-slate-100 overflow-hidden group hover:shadow-xl transition-all flex flex-col">
+          <div key={course._id || course.id} className="bg-white rounded-3xl border border-slate-100 overflow-hidden group hover:shadow-xl transition-all flex flex-col">
             <div className="relative aspect-video overflow-hidden bg-slate-100">
               <img src={course.image || course.img} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
               <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl font-black text-primary text-sm shadow-sm">

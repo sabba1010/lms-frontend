@@ -20,13 +20,13 @@ const ScormPlayerPage = () => {
       try {
         setLoading(true);
 
-        // Fetch course info
+        // Fetch course info (using proxy)
         const courseRes = await fetch(`/api/courses/${courseId}`);
         if (!courseRes.ok) throw new Error('Course not found.');
         const courseData = await courseRes.json();
         setCourse(courseData);
 
-        // Fetch SCORM entry point
+        // Fetch SCORM entry point (using proxy)
         const scormRes = await fetch(`/api/scorm/entry/${courseId}`);
         if (!scormRes.ok) {
           throw new Error('SCORM package not found. Please contact the administrator.');
@@ -128,7 +128,7 @@ const ScormPlayerPage = () => {
     return (
       <div className="min-h-screen bg-[#0F172A] flex flex-col items-center justify-center gap-6 text-white p-8">
         <div className="text-6xl">📦</div>
-        <h2 className="text-2xl font-black">SCORM Package Error</h2>
+        <h2 className="text-2xl font-black">SCORM Package Not Found</h2>
         <p className="text-slate-400 font-medium text-center max-w-md">{error}</p>
         <button
           onClick={() => navigate('/dashboard')}

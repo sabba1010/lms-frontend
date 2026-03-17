@@ -16,7 +16,7 @@ const CheckoutPage = () => {
     lastName: '',
     companyName: '',
     country: 'United Kingdom (UK)',
-    paymentMethod: 'bank_transfer'
+    paymentMethod: 'online'
   });
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -263,47 +263,16 @@ const CheckoutPage = () => {
               {/* Payment Methods */}
               <div className="bg-slate-50 rounded-2xl p-6 mb-8">
                 <div className="space-y-4">
-                  <label className="flex items-start gap-4 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="bank_transfer"
-                      checked={formData.paymentMethod === 'bank_transfer'}
-                      onChange={handleInputChange}
-                      className="mt-1 w-4 h-4 text-primary focus:ring-primary border-slate-300"
-                    />
-                    <div>
-                      <span className="block font-bold text-dark text-sm">Direct bank transfer</span>
-                      {formData.paymentMethod === 'bank_transfer' && (
-                        <p className="mt-2 text-xs text-slate-500 leading-relaxed bg-white p-4 rounded-xl border border-slate-100 italic">
-                          Make your payment directly into our bank account. Please use your Order ID as the payment reference. Your order will not be shipped until the funds have cleared in our account.
-                        </p>
-                      )}
-                    </div>
-                  </label>
-
                   <label className="flex items-center gap-4 cursor-pointer">
                     <input
                       type="radio"
                       name="paymentMethod"
-                      value="cheque"
-                      checked={formData.paymentMethod === 'cheque'}
+                      value="online"
+                      checked={formData.paymentMethod === 'online'}
                       onChange={handleInputChange}
                       className="w-4 h-4 text-primary focus:ring-primary border-slate-300"
                     />
-                    <span className="font-bold text-dark text-sm">Check payments</span>
-                  </label>
-
-                  <label className="flex items-center gap-4 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="cod"
-                      checked={formData.paymentMethod === 'cod'}
-                      onChange={handleInputChange}
-                      className="w-4 h-4 text-primary focus:ring-primary border-slate-300"
-                    />
-                    <span className="font-bold text-dark text-sm">Cash on delivery</span>
+                    <span className="font-bold text-dark text-sm">Online Payment</span>
                   </label>
                 </div>
               </div>

@@ -16,16 +16,6 @@ const CheckoutPage = () => {
     lastName: '',
     companyName: '',
     country: 'United Kingdom (UK)',
-    streetAddress: '',
-    apartment: '',
-    city: '',
-    county: '',
-    postcode: '',
-    phone: '',
-    email: user?.email || '',
-    orderNotes: '',
-    createAccount: false,
-    shipToDifferentAddress: false,
     paymentMethod: 'bank_transfer'
   });
 
@@ -229,114 +219,6 @@ const CheckoutPage = () => {
                     <FiChevronLeft className="rotate-270" style={{ transform: 'rotate(270deg)' }} />
                   </div>
                 </div>
-              </div>
-
-              <div className="mt-6 space-y-2">
-                <label className="text-[11px] font-black uppercase tracking-wider text-slate-400 ml-1">Street address <span className="text-red-500">*</span></label>
-                <input
-                  required
-                  type="text"
-                  name="streetAddress"
-                  placeholder="House number and street name"
-                  value={formData.streetAddress}
-                  onChange={handleInputChange}
-                  className="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-dark mb-4"
-                />
-                <input
-                  type="text"
-                  name="apartment"
-                  placeholder="Apartment, suite, unit, etc. (optional)"
-                  value={formData.apartment}
-                  onChange={handleInputChange}
-                  className="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-dark"
-                />
-              </div>
-
-              <div className="mt-6 space-y-2">
-                <label className="text-[11px] font-black uppercase tracking-wider text-slate-400 ml-1">Town / City <span className="text-red-500">*</span></label>
-                <input
-                  required
-                  type="text"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleInputChange}
-                  className="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-dark"
-                />
-              </div>
-
-              <div className="mt-6 space-y-2">
-                <label className="text-[11px] font-black uppercase tracking-wider text-slate-400 ml-1">County (optional)</label>
-                <input
-                  type="text"
-                  name="county"
-                  value={formData.county}
-                  onChange={handleInputChange}
-                  className="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-dark"
-                />
-              </div>
-
-              <div className="mt-6 space-y-2">
-                <label className="text-[11px] font-black uppercase tracking-wider text-slate-400 ml-1">Postcode <span className="text-red-500">*</span></label>
-                <input
-                  required
-                  type="text"
-                  name="postcode"
-                  value={formData.postcode}
-                  onChange={handleInputChange}
-                  className="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-dark"
-                />
-              </div>
-
-              <div className="mt-6 space-y-2">
-                <label className="text-[11px] font-black uppercase tracking-wider text-slate-400 ml-1">Phone <span className="text-red-500">*</span></label>
-                <input
-                  required
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  className="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-dark"
-                />
-              </div>
-
-              <div className="mt-6 space-y-2">
-                <label className="text-[11px] font-black uppercase tracking-wider text-slate-400 ml-1">Email address <span className="text-red-500">*</span></label>
-                <input
-                  required
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-dark"
-                />
-              </div>
-
-              <div className="mt-8 space-y-4">
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    name="createAccount"
-                    checked={formData.createAccount}
-                    onChange={handleInputChange}
-                    className="w-5 h-5 rounded border-slate-300 text-primary focus:ring-primary"
-                  />
-                  <span className="text-sm font-bold text-slate-600 group-hover:text-dark transition-colors">Create an account?</span>
-                </label>
-              </div>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-black text-dark mb-8 uppercase tracking-widest text-sm border-b border-slate-100 pb-4">Additional information</h2>
-              <div className="space-y-2">
-                <label className="text-[11px] font-black uppercase tracking-wider text-slate-400 ml-1">Order notes (optional)</label>
-                <textarea
-                  name="orderNotes"
-                  value={formData.orderNotes}
-                  onChange={handleInputChange}
-                  rows="4"
-                  placeholder="Notes about your order, e.g. special notes for delivery."
-                  className="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-dark resize-none"
-                ></textarea>
               </div>
             </section>
           </div>

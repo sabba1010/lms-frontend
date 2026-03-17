@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:match*",
+      "destination": "https://lms-backend-txu9.onrender.com/api/:match*"
+    },
+    {
+      "source": "/scorm/:match*",
+      "destination": "https://lms-backend-txu9.onrender.com/scorm/:match*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

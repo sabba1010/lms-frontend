@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import CompanySidebar from '../components/company/CompanySidebar';
 import CompanyHeader from '../components/company/CompanyHeader';
 import ManageStudents from '../components/company/ManageStudents';
@@ -7,18 +8,101 @@ import StudentAnalytics from '../components/company/StudentAnalytics';
 import ExploreCourses from '../components/company/ExploreCourses';
 import MyLicenses from '../components/company/MyLicenses';
 
+const COMPANY_API = '/api/company';
 
 const CompanyDashboard = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('Overview');
 
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStudents = async () => {
+      if (!user?.id) return;
+      try {
+        setLoading(true);
+        const res = await fetch(`${COMPANY_API}/students/${user.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setStudents(data);
+        }
+      } catch (err) {
+        console.error('Error fetching students:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudents();
+  }, [user]);
+
+  // Calculate real stats
+  const dashboardStats = useMemo(() => {
+    const totalStudents = students.length;
+    
+    // Count unique courses across all students
+    const activeCoursesSet = new Set();
+    let totalProgress = 0;
+    let enrollmentCount = 0;
+
+    students.forEach(student => {
+      if (student.courses) {
+        student.courses.forEach(c => {
+          activeCoursesSet.add(c.title);
+          totalProgress += (c.progress || 0);
+          enrollmentCount++;
+        });
+      }
+    });
+
+    const avgProgress = enrollmentCount > 0 
+      ? Math.round(totalProgress / enrollmentCount) 
+      : 0;
+
+    return {
+      totalStudents,
+      activeCourses: activeCoursesSet.size,
+      avgProgress: `${avgProgress}%`
+    };
+  }, [students]);
+
+  // Derive recent activity from student enrollments
+  const recentActivity = useMemo(() => {
+    const activity = [];
+    students.forEach(student => {
+      if (student.courses) {
+        student.courses.forEach(course => {
+          activity.push({
+            name: student.name,
+            action: course.progress >= 100 ? 'Completed' : 'is taking',
+            course: course.title,
+            time: course.enrolledAt ? new Date(course.enrolledAt).toLocaleDateString() : 'Recently',
+            timestamp: course.enrolledAt ? new Date(course.enrolledAt).getTime() : 0
+          });
+        });
+      }
+    });
+    // Sort by most recent and take top 5
+    return activity.sort((a, b) => b.timestamp - a.timestamp).slice(0, 5);
+  }, [students]);
+
   const handleLogout = () => {
-    localStorage.removeItem('auth_user');
+    logout();
     navigate('/login');
   };
 
   const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center p-20">
+          <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+        </div>
+      );
+    }
+
     switch(activeTab) {
       case 'Manage Students':
         return <ManageStudents />;
@@ -29,7 +113,6 @@ const CompanyDashboard = () => {
       case 'My Licenses':
         return <MyLicenses />;
       case 'Overview':
-
       default:
         return (
           <div className="space-y-8 animate-fade-in">
@@ -41,18 +124,28 @@ const CompanyDashboard = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <StatCard label="Total Students" value="24" icon="👨‍🎓" trend="+4 this month" />
-              <StatCard label="Active Courses" value="12" icon="📚" trend="Steady" />
-              <StatCard label="Average Progress" value="68%" icon="📈" trend="+5.2%" />
+              <StatCard label="Total Students" value={dashboardStats.totalStudents} icon="👨‍🎓" trend="Linked Students" />
+              <StatCard label="Active Courses" value={dashboardStats.activeCourses} icon="📚" trend="Courses in Progress" />
+              <StatCard label="Average Progress" value={dashboardStats.avgProgress} icon="📈" trend="Across all students" />
             </div>
 
             <div className="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
                <h3 className="text-xl font-bold text-dark mb-6">Recent Student Activity</h3>
-               <div className="space-y-4">
-                  <ActivityItem name="John Doe" action="Started" course="Advanced React Patterns" time="2 hours ago" />
-                  <ActivityItem name="Jane Smith" action="Completed" course="Business Strategy" time="5 hours ago" />
-                  <ActivityItem name="Mike Johnson" action="Achieved" course="UI/UX Masterclass" time="Yesterday" />
-               </div>
+               {recentActivity.length === 0 ? (
+                 <p className="text-slate-400 text-center py-4">No recent activity found.</p>
+               ) : (
+                 <div className="space-y-4">
+                    {recentActivity.map((activity, idx) => (
+                      <ActivityItem 
+                        key={idx}
+                        name={activity.name} 
+                        action={activity.action} 
+                        course={activity.course} 
+                        time={activity.time} 
+                      />
+                    ))}
+                 </div>
+               )}
             </div>
           </div>
         );

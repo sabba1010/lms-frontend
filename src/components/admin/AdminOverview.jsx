@@ -62,11 +62,7 @@ const AdminOverview = () => {
     img: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`
   })) || [];
 
-  const recentTransactions = [
-    { id: '#TRX-901', user: 'Alice Smith', amount: '$49.00', status: 'Completed', date: 'Today, 10:23 AM' },
-    { id: '#TRX-902', user: 'David Brown', amount: '$99.00', status: 'Pending', date: 'Today, 09:12 AM' },
-    { id: '#TRX-903', user: 'Emma Green', amount: '$29.00', status: 'Completed', date: 'Yesterday' },
-  ];
+  const recentTransactions = statsData?.recentTransactions || [];
 
   return (
     <div className="space-y-8 animate-fade-in">

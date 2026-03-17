@@ -99,7 +99,7 @@ const AdminSidebar = ({ activeTab, setActiveTab, isSidebarOpen, setIsSidebarOpen
                 </div>
                 <div className="flex-1 min-w-0">
                    <p className="text-sm font-bold text-dark truncate">Super Admin</p>
-                   <p className="text-[11px] font-bold text-primary">Admin Account</p>
+                   <button onClick={() => setActiveTab('Edit Account')} className="text-[11px] font-bold text-primary hover:underline">Edit Profile</button>
                 </div>
              </div>
              <button 

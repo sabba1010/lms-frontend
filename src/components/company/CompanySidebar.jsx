@@ -83,7 +83,12 @@ const CompanySidebar = ({ activeTab, setActiveTab, isSidebarOpen, setIsSidebarOp
               active={activeTab === 'My Licenses'} 
               onClick={() => { setActiveTab('My Licenses'); setIsSidebarOpen(false); }} 
             />
-
+            <NavItem 
+              icon={<FiSettings />} 
+              label="Edit Account" 
+              active={activeTab === 'Edit Account'} 
+              onClick={() => { setActiveTab('Edit Account'); setIsSidebarOpen(false); }} 
+            />
           </nav>
 
           <div className="p-4 px-6 border-t border-slate-100 flex flex-col gap-4">
@@ -93,7 +98,7 @@ const CompanySidebar = ({ activeTab, setActiveTab, isSidebarOpen, setIsSidebarOp
                 </div>
                 <div className="flex-1 min-w-0">
                    <p className="text-sm font-bold text-dark truncate">Company Manager</p>
-                   <p className="text-[11px] font-bold text-primary">Enterprise Account</p>
+                   <button onClick={() => setActiveTab('Edit Account')} className="text-[11px] font-bold text-primary hover:underline">Edit Profile</button>
                 </div>
              </div>
              <button 

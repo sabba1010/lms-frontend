@@ -7,6 +7,7 @@ import ManageStudents from '../components/company/ManageStudents';
 import StudentAnalytics from '../components/company/StudentAnalytics';
 import ExploreCourses from '../components/company/ExploreCourses';
 import MyLicenses from '../components/company/MyLicenses';
+import EditAccount from '../components/dashboard/EditAccount';
 
 const COMPANY_API = '/api/company';
 
@@ -110,6 +111,8 @@ const CompanyDashboard = () => {
         return <ExploreCourses />;
       case 'My Licenses':
         return <MyLicenses />;
+      case 'Edit Account':
+        return <EditAccount />;
       case 'Overview':
       default:
         return (

@@ -85,9 +85,9 @@ const AdminSidebar = ({ activeTab, setActiveTab, isSidebarOpen, setIsSidebarOpen
             />
             <NavItem 
               icon={<FiSettings />} 
-              label="Settings" 
-              active={activeTab === 'Settings'} 
-              onClick={() => { setActiveTab('Settings'); setIsSidebarOpen(false); }} 
+              label="Edit Account" 
+              active={activeTab === 'Edit Account'} 
+              onClick={() => { setActiveTab('Edit Account'); setIsSidebarOpen(false); }} 
             />
           </nav>
 

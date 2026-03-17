@@ -7,6 +7,7 @@ import AdminHeader from '../components/admin/AdminHeader';
 import AdminOverview from '../components/admin/AdminOverview';
 import ManageUsers from '../components/admin/ManageUsers';
 import ManageCourses from '../components/admin/ManageCourses';
+import EditAccount from '../components/dashboard/EditAccount';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -41,6 +42,8 @@ const AdminDashboard = () => {
               <p className="font-medium max-w-sm text-center">Configure platform preferences, manage roles, and review security access here.</p>
            </div>
         );
+      case 'Edit Account':
+        return <EditAccount />;
       case 'Dashboard':
       default:
         return <AdminOverview />;

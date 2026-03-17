@@ -81,12 +81,6 @@ const StudentDashboard = () => {
       icon: <FiClock className="w-6 h-6" />,
       color: 'bg-purple-500',
     },
-    {
-      title: 'Certificates',
-      value: String(enrolledCourses.filter((c) => (c.progress || 0) >= 100).length),
-      icon: <FiAward className="w-6 h-6" />,
-      color: 'bg-amber-500',
-    },
   ];
 
   const upcomingTasks = [
@@ -111,8 +105,6 @@ const StudentDashboard = () => {
     switch (activeTab) {
       case 'Edit Account':
         return <EditAccount />;
-      case 'My Certificates':
-        return <MyCertificates certificates={certificates} />;
       case 'My Courses':
         return loadingCourses ? (
           <div className="flex items-center justify-center p-16">

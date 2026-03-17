@@ -78,12 +78,6 @@ const Sidebar = ({ activeTab, setActiveTab, isSidebarOpen, setIsSidebarOpen, han
               onClick={() => { setActiveTab('Schedule'); setIsSidebarOpen(false); }} 
             /> */}
             <NavItem 
-              icon={<FiAward />} 
-              label="My Certificates" 
-              active={activeTab === 'My Certificates'} 
-              onClick={() => { setActiveTab('My Certificates'); setIsSidebarOpen(false); }} 
-            />
-            <NavItem 
               icon={<FiSettings />} 
               label="Edit Account" 
               active={activeTab === 'Edit Account'} 

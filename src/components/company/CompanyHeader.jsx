@@ -22,13 +22,6 @@ const CompanyHeader = ({ setIsSidebarOpen, handleLogout }) => {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4">
-        <button className="relative p-2.5 text-slate-500 hover:bg-slate-50 rounded-xl transition-all group">
-          <FiBell className="w-5 h-5 group-hover:scale-110 transition-transform" />
-          <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-        </button>
-        <button className="relative p-2.5 text-slate-500 hover:bg-slate-50 rounded-xl transition-all group">
-          <FiMessageSquare className="w-5 h-5 group-hover:scale-110 transition-transform" />
-        </button>
         
         <div className="h-8 w-[1px] bg-slate-100 mx-2 hidden sm:block"></div>
         

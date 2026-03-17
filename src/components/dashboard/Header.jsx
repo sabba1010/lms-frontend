@@ -22,11 +22,6 @@ const Header = ({ setIsSidebarOpen, setActiveTab, handleLogout }) => {
       </div>
 
       <div className="flex items-center gap-4">
-        <button className="relative p-2.5 text-slate-500 hover:bg-slate-50 rounded-xl transition-all group">
-          <FiBell className="w-6 h-6 group-hover:text-primary" />
-          <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
-        </button>
-        <div className="h-8 w-px bg-slate-200 mx-2 hidden sm:block"></div>
         <div className="flex items-center gap-3 group">
            <button onClick={() => setActiveTab('Edit Account')} className="flex items-center gap-3">
               <div className="text-right hidden sm:block">

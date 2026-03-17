@@ -4,11 +4,8 @@ import { courses as defaultCourses } from '../../data/courses';
 
 const ManageStudents = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [students, setStudents] = useState([
-    { id: 1, name: 'Alex Johnson', email: 'alex@company.com', courses: ['Python Bootcamp'], status: 'Active' },
-    { id: 2, name: 'Sarah Williams', email: 'sarah@company.com', courses: ['UI/UX Design'], status: 'Active' },
-    { id: 3, name: 'David Chen', email: 'david@company.com', courses: [], status: 'Inactive' },
-  ]);
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [availableCourses, setAvailableCourses] = useState([]);
   const [newStudent, setNewStudent] = useState({ name: '', email: '', course: '' });
@@ -18,99 +15,145 @@ const ManageStudents = () => {
   const [licenses, setLicenses] = useState({});
   const [errorHeader, setErrorHeader] = useState('');
 
+  const user = JSON.parse(localStorage.getItem('auth_user') || '{}');
+
+  const fetchStudents = async () => {
+    try {
+      setLoading(true);
+      if (!user.id) return;
+      const response = await fetch(`/api/company/students/${user.id}`);
+      if (!response.ok) throw new Error('Failed to fetch students');
+      const data = await response.json();
+      setStudents(data);
+    } catch (err) {
+      console.error('Error fetching students:', err);
+      setErrorHeader('Could not load students. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
      const savedCourses = JSON.parse(localStorage.getItem('courses'));
      setAvailableCourses(savedCourses || defaultCourses);
      
      const savedLicenses = JSON.parse(localStorage.getItem('companyLicenses')) || {};
      setLicenses(savedLicenses);
-  }, []);
 
-  const handleAddStudent = (e) => {
+     fetchStudents();
+  }, [user.id]);
+
+  const handleAddStudent = async (e) => {
     e.preventDefault();
+    setErrorHeader('');
     
-    let updatedLicenses = { ...licenses };
-    let finalCourses = [];
+    try {
+      // 1. Link student in backend
+      const response = await fetch('/api/company/add-student', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyId: user.id,
+          studentEmail: newStudent.email
+        })
+      });
 
-    if (newStudent.course) {
-      // Find course license
-      const courseId = availableCourses.find(c => c.title === newStudent.course)?.id;
-      const license = updatedLicenses[courseId];
-
-      if (!license || license.used >= license.count) {
-        setErrorHeader(`You don't have enough licenses for "${newStudent.course}". Please buy more first.`);
-        setTimeout(() => setErrorHeader(''), 3000);
-        return;
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to add student');
       }
 
-      // Increment used seats
-      updatedLicenses[courseId].used = (updatedLicenses[courseId].used || 0) + 1;
-      finalCourses = [{ 
-        title: newStudent.course, 
-        progress: 0, 
-        enrolledDate: new Date().toLocaleDateString() 
-      }];
+      // 2. If student added successfully, refresh list
+      await fetchStudents();
+
+      // 3. (Optional) Assign course if selected
+      if (newStudent.course) {
+        // Find course ID
+        const course = availableCourses.find(c => c.title === newStudent.course);
+        if (course) {
+           const enrollRes = await fetch('/api/payments/enroll', {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({
+               userId: data.student.id,
+               courseIds: [course._id || course.id]
+             })
+           });
+           
+           if (enrollRes.ok) {
+              const updatedLicenses = { ...licenses };
+              const cId = course._id || course.id;
+              if (updatedLicenses[cId]) {
+                 updatedLicenses[cId].used = (updatedLicenses[cId].used || 0) + 1;
+                 setLicenses(updatedLicenses);
+                 localStorage.setItem('companyLicenses', JSON.stringify(updatedLicenses));
+              }
+           }
+        }
+      }
+
+      setIsModalOpen(false);
+      setNewStudent({ name: '', email: '', course: '' });
+      // Refresh again to show updated course count
+      await fetchStudents();
+
+    } catch (err) {
+      setErrorHeader(err.message);
+      setTimeout(() => setErrorHeader(''), 5000);
     }
-
-    const student = {
-      id: Date.now(),
-      name: newStudent.name,
-      email: newStudent.email,
-      courses: finalCourses,
-      status: 'Active'
-    };
-
-    setStudents([student, ...students]);
-    setLicenses(updatedLicenses);
-    localStorage.setItem('companyLicenses', JSON.stringify(updatedLicenses));
-    
-    setIsModalOpen(false);
-    setNewStudent({ name: '', email: '', course: '' });
   };
 
-  const handleAssignCourse = (e) => {
+  const handleAssignCourse = async (e) => {
     e.preventDefault();
     if (!selectedStudent || !newStudent.course) return;
 
-    // Check license
-    const courseId = availableCourses.find(c => c.title === newStudent.course)?.id;
-    const license = licenses[courseId];
+    setErrorHeader('');
 
-    if (!license || license.used >= license.count) {
-      setErrorHeader(`No seats available for "${newStudent.course}".`);
-      setTimeout(() => setErrorHeader(''), 3000);
-      return;
-    }
+    try {
+      const course = availableCourses.find(c => c.title === newStudent.course);
+      if (!course) throw new Error('Course not found');
 
-    setStudents(students.map(s => {
-      if (s.id === selectedStudent.id) {
-        if (s.courses.some(c => c.title === newStudent.course)) return s;
-        
-        // Update License
-        const updatedLicenses = { ...licenses };
-        updatedLicenses[courseId].used = (updatedLicenses[courseId].used || 0) + 1;
-        setLicenses(updatedLicenses);
-        localStorage.setItem('companyLicenses', JSON.stringify(updatedLicenses));
+      const cId = course._id || course.id;
+      const license = licenses[cId];
 
-        return {
-          ...s,
-          courses: [...s.courses, { 
-            title: newStudent.course, 
-            progress: 0, 
-            enrolledDate: new Date().toLocaleDateString() 
-          }]
-        };
+      if (!license || license.used >= license.count) {
+        throw new Error(`No seats available for "${newStudent.course}".`);
       }
-      return s;
-    }));
-    setIsAssignModalOpen(false);
-    setNewStudent({ ...newStudent, course: '' });
+
+      const response = await fetch('/api/payments/enroll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: selectedStudent._id || selectedStudent.id,
+          courseIds: [cId]
+        })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to assign course');
+      }
+
+      // Update License
+      const updatedLicenses = { ...licenses };
+      updatedLicenses[cId].used = (updatedLicenses[cId].used || 0) + 1;
+      setLicenses(updatedLicenses);
+      localStorage.setItem('companyLicenses', JSON.stringify(updatedLicenses));
+
+      setIsAssignModalOpen(false);
+      setNewStudent({ ...newStudent, course: '' });
+      await fetchStudents();
+
+    } catch (err) {
+      setErrorHeader(err.message);
+      setTimeout(() => setErrorHeader(''), 3000);
+    }
   };
 
 
-  const filteredStudents = students.filter(s => 
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    s.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredStudents = (students || []).filter(s => 
+    s.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    s.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -159,11 +202,11 @@ const ManageStudents = () => {
             </thead>
             <tbody>
               {filteredStudents.map((student) => (
-                <tr key={student.id} className="group bg-white hover:bg-slate-50 transition-colors">
+                <tr key={student._id || student.id} className="group bg-white hover:bg-slate-50 transition-colors">
                   <td className="py-5 pl-4 rounded-l-2xl border-y border-l border-slate-50">
                     <div className="flex items-center gap-4">
                       <div className="w-11 h-11 rounded-2xl bg-slate-100 flex items-center justify-center font-bold text-slate-500 shadow-inner">
-                        {student.name.charAt(0)}
+                        {student.name?.charAt(0)}
                       </div>
                       <div>
                         <p className="text-sm font-bold text-dark">{student.name}</p>
@@ -173,7 +216,7 @@ const ManageStudents = () => {
                   </td>
                   <td className="py-5 border-y border-slate-50">
                     <div className="flex flex-col gap-3 max-w-xs">
-                      {student.courses.length > 0 ? (
+                      {student.courses && student.courses.length > 0 ? (
                         student.courses.map((c, i) => (
                           <div key={i} className="space-y-1.5">
                              <div className="flex justify-between text-[10px] font-black uppercase tracking-tighter">
@@ -191,11 +234,9 @@ const ManageStudents = () => {
                     </div>
                   </td>
                   <td className="py-5 border-y border-slate-50">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${
-                      student.status === 'Active' ? 'bg-green-50 text-green-600' : 'bg-slate-100 text-slate-400'
-                    }`}>
-                      <div className={`w-1.5 h-1.5 rounded-full ${student.status === 'Active' ? 'bg-green-500 animate-pulse' : 'bg-slate-400'}`}></div>
-                      {student.status}
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-green-50 text-green-600`}>
+                      <div className={`w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse`}></div>
+                      Active
                     </span>
                   </td>
                   <td className="py-5 text-right pr-4 rounded-r-2xl border-y border-r border-slate-50">

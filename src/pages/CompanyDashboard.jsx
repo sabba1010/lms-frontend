@@ -107,6 +107,8 @@ const CompanyDashboard = () => {
     switch(activeTab) {
       case 'Manage Students':
         return <ManageStudents />;
+      case 'Student Analytics':
+        return <StudentAnalytics students={students} />;
       case 'Explore Courses':
         return <ExploreCourses />;
       case 'My Licenses':

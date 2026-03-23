@@ -7,6 +7,7 @@ import AdminHeader from '../components/admin/AdminHeader';
 import AdminOverview from '../components/admin/AdminOverview';
 import ManageUsers from '../components/admin/ManageUsers';
 import ManageCourses from '../components/admin/ManageCourses';
+import AdminAnalytics from '../components/admin/AdminAnalytics';
 import EditAccount from '../components/dashboard/EditAccount';
 
 const AdminDashboard = () => {
@@ -26,6 +27,8 @@ const AdminDashboard = () => {
         return <ManageUsers />;
       case 'Manage Courses':
         return <ManageCourses />;
+      case 'Platform Analytics':
+        return <AdminAnalytics />;
       case 'Payments':
         return (
            <div className="flex flex-col items-center justify-center p-12 text-slate-400 bg-white rounded-3xl border border-slate-100 border-dashed animate-fade-in">

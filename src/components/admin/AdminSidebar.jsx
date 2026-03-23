@@ -5,6 +5,7 @@ import {
   FiUsers, 
   FiBookOpen, 
   FiDollarSign, 
+  FiBarChart2,
   FiSettings, 
   FiX, 
   FiLogOut 
@@ -76,6 +77,12 @@ const AdminSidebar = ({ activeTab, setActiveTab, isSidebarOpen, setIsSidebarOpen
               label="Manage Courses" 
               active={activeTab === 'Manage Courses'} 
               onClick={() => { setActiveTab('Manage Courses'); setIsSidebarOpen(false); }} 
+            />
+            <NavItem 
+              icon={<FiBarChart2 />} 
+              label="Platform Analytics" 
+              active={activeTab === 'Platform Analytics'} 
+              onClick={() => { setActiveTab('Platform Analytics'); setIsSidebarOpen(false); }} 
             />
             <NavItem 
               icon={<FiDollarSign />} 

@@ -84,6 +84,12 @@ const CompanySidebar = ({ activeTab, setActiveTab, isSidebarOpen, setIsSidebarOp
               onClick={() => { setActiveTab('My Licenses'); setIsSidebarOpen(false); }} 
             />
             <NavItem 
+              icon={<FiBarChart2 />} 
+              label="Student Analytics" 
+              active={activeTab === 'Student Analytics'} 
+              onClick={() => { setActiveTab('Student Analytics'); setIsSidebarOpen(false); }} 
+            />
+            <NavItem 
               icon={<FiSettings />} 
               label="Edit Account" 
               active={activeTab === 'Edit Account'} 

@@ -91,9 +91,9 @@ const AdminAnalytics = () => {
         />
         <MetricCard 
           label="Engagement" 
-          value="88%" 
+          value={statsData?.engagement || '0%'} 
           icon={<FiActivity />} 
-          trend="Stable" 
+          trend="Real-time" 
           color="bg-amber-500" 
         />
       </div>
@@ -135,10 +135,18 @@ const AdminAnalytics = () => {
               <FiPieChart className="text-primary w-6 h-6" />
            </div>
            <div className="space-y-6">
-              <CourseRow label="Enterprise Python" color="bg-primary" percent={75} />
-              <CourseRow label="UI Design Masterclass" color="bg-amber-500" percent={42} />
-              <CourseRow label="Strategic Business" color="bg-emerald-500" percent={68} />
-              <CourseRow label="Frontend Eng." color="bg-violet-500" percent={25} />
+              {(statsData?.topCourses || []).length > 0 ? (
+                statsData.topCourses.map((course, idx) => (
+                  <CourseRow 
+                    key={idx}
+                    label={course.label} 
+                    color={['bg-primary', 'bg-amber-500', 'bg-emerald-500', 'bg-violet-500'][idx % 4]} 
+                    percent={course.percent} 
+                  />
+                ))
+              ) : (
+                <p className="text-sm text-slate-400 font-bold italic">No enrollment data yet.</p>
+              )}
            </div>
            <button className="w-full mt-8 py-3 rounded-2xl bg-slate-50 text-slate-500 font-bold text-sm hover:bg-slate-100 transition-colors">
               Full Breakdown

@@ -158,6 +158,9 @@ const ScormPlayerPage = () => {
             cmiRef.current[element] = value;
             if (element === 'cmi.core.lesson_status') {
               onStatusSet(value);
+            } else if (element === 'cmi.core.score.raw') {
+              const val = Math.round(parseFloat(value));
+              if (!isNaN(val)) onStatusSet('incomplete', val);
             } else {
               syncToBackend(); 
             }
@@ -192,6 +195,12 @@ const ScormPlayerPage = () => {
             cmiRef.current[element] = value;
             if (element === 'cmi.completion_status' || element === 'cmi.success_status') {
               onStatusSet(value);
+            } else if (element === 'cmi.progress_measure') {
+              const val = Math.round(parseFloat(value) * 100);
+              if (!isNaN(val)) onStatusSet('incomplete', val);
+            } else if (element === 'cmi.score.raw') {
+              const val = Math.round(parseFloat(value));
+              if (!isNaN(val)) onStatusSet('incomplete', val);
             } else {
               syncToBackend();
             }

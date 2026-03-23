@@ -3,25 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { FiChevronRight, FiCalendar, FiPlayCircle } from 'react-icons/fi';
 
-const Overview = ({ stats, enrolledCourses, upcomingTasks, setActiveTab, loadingCourses, refreshCourses, userId }) => {
+const Overview = ({ stats, enrolledCourses, upcomingTasks, setActiveTab, loadingCourses }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const handleMarkComplete = async (courseId) => {
-    if (!userId) return;
-    try {
-      const res = await fetch('/api/scorm/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, courseId }),
-      });
-      if (res.ok) {
-        refreshCourses?.();
-      }
-    } catch (err) {
-      console.error('Error marking course complete:', err);
-    }
-  };
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -113,7 +98,19 @@ const Overview = ({ stats, enrolledCourses, upcomingTasks, setActiveTab, loading
                   </div>
                   <div className="p-5 sm:p-6">
                     <h4 className="font-bold text-dark text-lg mb-4 line-clamp-1">{course.title}</h4>
-                    <div className="mb-4" />
+                    
+                    {/* Progress bar */}
+                    <div className="mb-6">
+                      <div className="flex justify-between text-[13px] font-bold text-slate-500 mb-2">
+                        <span>{progress}% Completed</span>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-100/50">
+                        <div 
+                          className="bg-primary h-full rounded-full transition-all duration-700 shadow-[0_0_10px_rgba(255,107,0,0.3)]" 
+                          style={{ width: `${progress}%` }} 
+                        />
+                      </div>
+                    </div>
                     
                     <div className="space-y-3">
                       {hasScorm ? (
@@ -129,15 +126,6 @@ const Overview = ({ stats, enrolledCourses, upcomingTasks, setActiveTab, loading
                           className="w-full flex items-center justify-center gap-2 bg-[#F1F5F9] text-dark font-bold py-3.5 rounded-2xl hover:bg-primary hover:text-white transition-all duration-300"
                         >
                           View Course <FiChevronRight />
-                        </button>
-                      )}
-
-                      {progress < 100 && (
-                        <button
-                          onClick={() => handleMarkComplete(courseId)}
-                          className="w-full flex items-center justify-center gap-2 bg-green-50 text-green-600 font-bold py-2.5 rounded-2xl hover:bg-green-600 hover:text-white transition-all duration-300 border border-green-100 text-sm"
-                        >
-                          Mark as Complete
                         </button>
                       )}
                     </div>

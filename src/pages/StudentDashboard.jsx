@@ -111,11 +111,7 @@ const StudentDashboard = () => {
             <span className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
           </div>
         ) : (
-          <MyCourses 
-            enrolledCourses={enrolledCourses} 
-            refreshCourses={fetchEnrolledCourses} 
-            userId={user?.id} 
-          />
+          <MyCourses enrolledCourses={enrolledCourses} />
         );
       case 'My Certificates':
         return <MyCertificates certificates={certificates} />;
@@ -129,8 +125,6 @@ const StudentDashboard = () => {
             upcomingTasks={upcomingTasks}
             setActiveTab={setActiveTab}
             loadingCourses={loadingCourses}
-            refreshCourses={fetchEnrolledCourses}
-            userId={user?.id}
           />
         );
     }

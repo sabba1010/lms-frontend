@@ -2,24 +2,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiPlayCircle, FiChevronRight, FiBookOpen } from 'react-icons/fi';
 
-const MyCourses = ({ enrolledCourses, refreshCourses, userId }) => {
+const MyCourses = ({ enrolledCourses }) => {
   const navigate = useNavigate();
-
-  const handleMarkComplete = async (courseId) => {
-    if (!userId) return;
-    try {
-      const res = await fetch('/api/scorm/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, courseId }),
-      });
-      if (res.ok) {
-        refreshCourses?.();
-      }
-    } catch (err) {
-      console.error('Error marking course complete:', err);
-    }
-  };
 
   if (!enrolledCourses || enrolledCourses.length === 0) {
     return (
@@ -75,6 +59,24 @@ const MyCourses = ({ enrolledCourses, refreshCourses, userId }) => {
               <div className="p-5 sm:p-6">
                 <h4 className="font-bold text-dark text-lg mb-4 line-clamp-2">{course.title}</h4>
 
+                {/* Progress bar */}
+                <div className="mb-5">
+                  <div className="flex justify-between text-[13px] font-bold text-slate-500 mb-2">
+                    <span>{progress}% Completed</span>
+                    <span className="text-xs text-slate-400">
+                      {course.enrolledAt
+                        ? `Enrolled ${new Date(course.enrolledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                        : ''}
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-100/50">
+                    <div
+                      className="bg-primary h-full rounded-full transition-all duration-700 shadow-[0_0_10px_rgba(255,107,0,0.3)]"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+
                 {/* Action Buttons */}
                 <div className="space-y-3">
                   {hasScorm ? (
@@ -91,15 +93,6 @@ const MyCourses = ({ enrolledCourses, refreshCourses, userId }) => {
                       className="w-full flex items-center justify-center gap-2 bg-[#F1F5F9] text-dark font-bold py-4 rounded-2xl hover:bg-primary hover:text-white transition-all duration-300"
                     >
                       View Course <FiChevronRight />
-                    </button>
-                  )}
-
-                  {progress < 100 && (
-                    <button
-                      onClick={() => handleMarkComplete(courseId)}
-                      className="w-full flex items-center justify-center gap-2 bg-green-50 text-green-600 font-bold py-3 rounded-2xl hover:bg-green-600 hover:text-white transition-all duration-300 border border-green-100"
-                    >
-                      Mark as Complete
                     </button>
                   )}
                 </div>

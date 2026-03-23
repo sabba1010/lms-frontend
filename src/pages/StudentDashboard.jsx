@@ -27,6 +27,7 @@ const StudentDashboard = () => {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('Overview');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Real enrolled courses from the backend
   const [enrolledCourses, setEnrolledCourses] = useState([]);
@@ -101,6 +102,10 @@ const StudentDashboard = () => {
       img: course.image || 'https://images.unsplash.com/photo-1589330694653-ded6df03f754?w=500&auto=format&fit=crop',
     }));
 
+  const filteredCourses = enrolledCourses.filter(course => 
+    course.title?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const renderContent = () => {
     switch (activeTab) {
       case 'Edit Account':
@@ -111,7 +116,7 @@ const StudentDashboard = () => {
             <span className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
           </div>
         ) : (
-          <MyCourses enrolledCourses={enrolledCourses} />
+          <MyCourses enrolledCourses={filteredCourses} />
         );
       case 'My Certificates':
         return <MyCertificates certificates={certificates} />;
@@ -121,7 +126,7 @@ const StudentDashboard = () => {
         return (
           <Overview
             stats={stats}
-            enrolledCourses={enrolledCourses}
+            enrolledCourses={filteredCourses}
             upcomingTasks={upcomingTasks}
             setActiveTab={setActiveTab}
             loadingCourses={loadingCourses}
@@ -134,7 +139,10 @@ const StudentDashboard = () => {
     <div className="flex h-screen bg-[#F8FAFC] font-sans overflow-hidden">
       <Sidebar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={(tab) => {
+          setActiveTab(tab);
+          setSearchQuery('');
+        }}
         isSidebarOpen={isSidebarOpen}
         setIsSidebarOpen={setIsSidebarOpen}
         handleLogout={handleLogout}
@@ -146,6 +154,8 @@ const StudentDashboard = () => {
           setIsSidebarOpen={setIsSidebarOpen}
           setActiveTab={setActiveTab}
           handleLogout={handleLogout}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
         />
 
         {/* Dashboard Content */}

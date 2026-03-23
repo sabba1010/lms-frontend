@@ -99,18 +99,7 @@ const Overview = ({ stats, enrolledCourses, upcomingTasks, setActiveTab, loading
                   <div className="p-5 sm:p-6">
                     <h4 className="font-bold text-dark text-lg mb-4 line-clamp-1">{course.title}</h4>
                     
-                    {/* Progress bar */}
-                    <div className="mb-6">
-                      <div className="flex justify-between text-[13px] font-bold text-slate-500 mb-2">
-                        <span>{progress}% Completed</span>
-                      </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-100/50">
-                        <div 
-                          className="bg-primary h-full rounded-full transition-all duration-700 shadow-[0_0_10px_rgba(255,107,0,0.3)]" 
-                          style={{ width: `${progress}%` }} 
-                        />
-                      </div>
-                    </div>
+
                     
                     <div className="space-y-3">
                       {hasScorm ? (

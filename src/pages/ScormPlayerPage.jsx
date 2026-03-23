@@ -195,7 +195,7 @@ const ScormPlayerPage = () => {
             cmiRef.current[element] = value;
             if (element === 'cmi.completion_status' || element === 'cmi.success_status') {
               onStatusSet(value);
-            } else if (element === 'cmi.progress_measure') {
+            } else if (element === 'cmi.progress_measure' || element === 'cmi.score.scaled') {
               const val = Math.round(parseFloat(value) * 100);
               if (!isNaN(val)) onStatusSet('incomplete', val);
             } else if (element === 'cmi.score.raw') {
@@ -212,7 +212,41 @@ const ScormPlayerPage = () => {
           GetDiagnostic: () => 'No error',
         };
 
-        autoSaveTimer = setInterval(syncToBackend, 30000);
+        const deepPeekProgress = () => {
+          try {
+            const iframe = document.getElementById('scorm-iframe');
+            if (!iframe || !iframe.contentWindow) return;
+            
+            const win = iframe.contentWindow;
+            let foundProgress = null;
+
+            // 1. Try Articulate Rise internal state
+            if (win.Rise && win.Rise.state && typeof win.Rise.state.progress === 'number') {
+              foundProgress = Math.round(win.Rise.state.progress * 100);
+            } 
+            // 2. Try generic Articulate Player
+            else if (win.Articulate && typeof win.Articulate.progress === 'number') {
+              foundProgress = Math.round(win.Articulate.progress * 100);
+            }
+            // 3. Try standard SCORM objects in the global scope (sometimes mirror)
+            else if (win.LMS && typeof win.LMS.progress === 'number') {
+              foundProgress = Math.round(win.LMS.progress);
+            }
+
+            if (foundProgress !== null && foundProgress > (cmiRef.current['_last_peeked_progress'] || 0)) {
+              cmiRef.current['_last_peeked_progress'] = foundProgress;
+              onStatusSet('incomplete', foundProgress);
+            }
+          } catch (e) {
+            // Likely cross-domain security if not same-origin, silent fail
+          }
+        };
+
+        autoSaveTimer = setInterval(() => {
+          syncToBackend();
+          deepPeekProgress();
+        }, 15000); 
+
         setIsDataReady(true);
 
       } catch (err) {

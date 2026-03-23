@@ -77,36 +77,6 @@ const AdminOverview = () => {
         ))}
       </div>
 
-      {/* Revenue Stream Graph Integration */}
-      <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm mb-8">
-         <div className="flex items-center justify-between mb-8">
-            <div>
-               <h3 className="font-bold text-dark text-xl tracking-tight">Revenue Stream</h3>
-               <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Monthly financial overview</p>
-            </div>
-            <div className="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center text-xl shadow-lg shadow-emerald-500/10">
-               <FiDollarSign />
-            </div>
-         </div>
-         
-         <div className="flex items-end justify-between h-64 gap-3 sm:gap-6 px-2 sm:px-4">
-            {statsData?.monthlyRevenue?.map((data, idx) => {
-               const maxRev = Math.max(...statsData.monthlyRevenue.map(m => m.revenue), 1);
-               const heightPercent = Math.max((data.revenue / maxRev) * 100, 5);
-               const isLatest = idx === statsData.monthlyRevenue.length - 1;
-               
-               return (
-                 <BigBar 
-                   key={idx} 
-                   height={`${heightPercent}%`} 
-                   label={data.month} 
-                   active={isLatest} 
-                 />
-               );
-            })}
-         </div>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 align-top">
         {/* Recent Registrations */}
         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm col-span-1 border-t-4 border-t-primary">
@@ -174,21 +144,5 @@ const AdminOverview = () => {
     </div>
   );
 };
-
-const BigBar = ({ height, label, active = false }) => (
-  <div className="flex-1 h-full flex flex-col items-center gap-4 group">
-     <div className="w-full relative flex-1 flex flex-col justify-end min-h-[1px]">
-        <div 
-          className={`w-full rounded-2xl transition-all duration-700 relative overflow-hidden ${active ? 'bg-primary shadow-lg shadow-primary/30' : 'bg-slate-100 hover:bg-slate-200'}`}
-          style={{ height: height || '0%' }}
-        >
-           {active && (
-             <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent"></div>
-           )}
-        </div>
-     </div>
-     <span className={`text-[10px] sm:text-xs font-black tracking-widest uppercase transition-colors shrink-0 ${active ? 'text-primary' : 'text-slate-400'}`}>{label}</span>
-  </div>
-);
 
 export default AdminOverview;

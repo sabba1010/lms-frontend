@@ -10,7 +10,7 @@ export default defineConfig({
         target: 'http://localhost:5000',
         changeOrigin: true,
       },
-      '/scorm': {
+      '/scorm/': {
         target: 'http://localhost:5000',
         changeOrigin: true,
       }

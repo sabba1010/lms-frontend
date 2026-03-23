@@ -17,14 +17,30 @@ const ScormPlayerPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isDataReady, setIsDataReady] = useState(false);
+
+  const [logs, setLogs] = useState([]);
+  const addLog = (msg) => setLogs(prev => [msg, ...prev].slice(0, 10));
+
+  const cmiRef = useRef({
+    'cmi.suspend_data': '',
+    'cmi.core.lesson_location': '',
+    'cmi.location': '',
+    'cmi.core.lesson_status': 'incomplete',
+    'cmi.completion_status': 'incomplete',
+  });
 
   const handleCompletion = async () => {
     if (completionSentRef.current || !user?.id) return;
     
     try {
       completionSentRef.current = true;
-      console.log('SCORM Completion Detected. Sending to backend...');
+      addLog('🚀 Reporting Completion (100%)...');
       
+      // Update local state immediately to protect against race conditions
+      cmiRef.current['cmi.core.lesson_status'] = 'completed';
+      cmiRef.current['cmi.completion_status'] = 'completed';
+
       const res = await fetch(`${SCORM_API}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -32,114 +48,160 @@ const ScormPlayerPage = () => {
       });
       
       if (res.ok) {
-        console.log('Database updated successfully for course completion.');
+        addLog('✅ Completion Saved to DB');
+        // Final sync of suspend data alongside completion
       }
     } catch (err) {
-      console.error('Error reporting SCORM completion:', err);
-      completionSentRef.current = false; // Retry on failure if needed, or keep blocked
+      addLog('❌ Completion Error: ' + err.message);
     }
   };
 
   useEffect(() => {
+    let autoSaveTimer;
+
     const loadCourse = async () => {
       try {
         setLoading(true);
 
-        // Fetch course info (using proxy)
-        const courseRes = await fetch(`/api/courses/${courseId}`);
-        if (!courseRes.ok) throw new Error('Course not found.');
-        const courseData = await courseRes.json();
-        setCourse(courseData);
+        const [courseRes, scormRes] = await Promise.all([
+          fetch(`/api/courses/${courseId}`),
+          fetch(`/api/scorm/entry/${courseId}`)
+        ]);
 
-        // Fetch SCORM entry point (using proxy)
-        const scormRes = await fetch(`/api/scorm/entry/${courseId}`);
-        if (!scormRes.ok) {
-          throw new Error('SCORM package not found. Please contact the administrator.');
-        }
-        const scormData = await scormRes.json();
+        if (!courseRes.ok || !scormRes.ok) throw new Error('Course or SCORM package not found.');
         
-        if (!scormData.entryPoint || scormData.entryPoint.includes('undefined')) {
-           throw new Error('Invalid SCORM entry point. Please check the package manifest.');
-        }
-
+        const courseData = await courseRes.json();
+        const scormData = await scormRes.json();
+        setCourse(courseData);
         setEntryPoint(scormData.entryPoint);
 
-        // SCORM API Implementation
+        try {
+          if (user?.id) {
+            const suspRes = await fetch(`/api/payments/suspend/${user.id}/${courseId}`);
+            if (suspRes.ok) {
+              const data = await suspRes.json();
+              cmiRef.current['cmi.suspend_data'] = data.suspendData || '';
+              cmiRef.current['cmi.core.lesson_location'] = data.lessonLocation || '';
+              cmiRef.current['cmi.location'] = data.lessonLocation || '';
+              cmiRef.current['cmi.core.lesson_status'] = data.status || 'incomplete';
+              cmiRef.current['cmi.completion_status'] = data.status || 'incomplete';
+              cmiRef.current['cmi.success_status'] = data.status === 'passed' ? 'passed' : 'unknown';
+              addLog('📖 Progress Restored');
+            }
+          }
+        } catch (err) { console.error('Resume fetch error:', err); }
+
+        const syncToBackend = async () => {
+          if (!user?.id) return;
+          try {
+            await fetch('/api/payments/suspend', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                userId: user.id, 
+                courseId, 
+                suspendData: cmiRef.current['cmi.suspend_data'],
+                lessonLocation: cmiRef.current['cmi.core.lesson_location'] || cmiRef.current['cmi.location'],
+                status: cmiRef.current['cmi.core.lesson_status'] || cmiRef.current['cmi.completion_status']
+              })
+            });
+            addLog('💾 Position Synced');
+          } catch (e) { /* silent */ }
+        };
+
         const onStatusSet = async (status, progressValue = null) => {
-          console.log(`SCORM Status Change: ${status}${progressValue !== null ? ` (Progress: ${progressValue}%)` : ''}`);
-          
           const lowerStatus = status?.toLowerCase() || '';
+          
+          // Protect "completed" status - once finished, don't let it go back to incomplete
+          const currentStatus = cmiRef.current['cmi.core.lesson_status'] || cmiRef.current['cmi.completion_status'];
+          if ((currentStatus === 'completed' || currentStatus === 'passed') && (lowerStatus === 'incomplete' || lowerStatus === 'browsed')) {
+            addLog('🛡️ Protected Finished Status');
+            return;
+          }
+
+          addLog(`📡 SET Status: ${status}${progressValue !== null ? ` (${progressValue}%)` : ''}`);
+          
           if (lowerStatus === 'completed' || lowerStatus === 'passed') {
             handleCompletion();
           } else if (progressValue !== null) {
-            // Update incremental progress
             try {
-              console.log(`Sending incremental progress update: ${progressValue}%`);
               await fetch('/api/payments/progress', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: user.id, courseId, progress: progressValue })
               });
-            } catch (err) {
-              console.error('Error updating incremental progress:', err);
-            }
+            } catch (err) { /* silent */ }
           }
+          syncToBackend();
         };
 
-        // SCORM 1.2
+        // 4. SCORM 1.2 API
         window.API = {
-          LMSInitialize: () => { console.log('SCORM 1.2 Initialized'); return 'true'; },
-          LMSFinish: () => { console.log('SCORM 1.2 Finished'); return 'true'; },
+          LMSInitialize: () => { 
+            addLog('🔌 SCORM 1.2 Initialized'); 
+            const entryStr = (cmiRef.current['cmi.suspend_data'] || cmiRef.current['cmi.core.lesson_location']) ? 'resume' : 'ab-initio';
+            cmiRef.current['cmi.core.entry'] = entryStr;
+            return 'true'; 
+          },
+          LMSFinish: () => { syncToBackend(); addLog('🔌 SCORM 1.2 Finished'); return 'true'; },
           LMSGetValue: (element) => {
-            console.log(`SCORM 1.2 GetValue: ${element}`);
-            if (element === 'cmi.core.lesson_status') return 'incomplete';
-            if (element === 'cmi.core.score.raw') return '0';
-            return '';
+            if (element === 'cmi.core.entry') return cmiRef.current['cmi.core.entry'] || 'ab-initio';
+            if (element === 'cmi.core.credit') return 'credit';
+            if (element === 'cmi.core.lesson_mode') return 'normal';
+            if (element === 'cmi.core.student_id') return user?.id || 'guest';
+            if (element === 'cmi.core.student_name') return user?.name || 'Guest Student';
+            if (element === 'cmi.core.lesson_status') return cmiRef.current[element] || 'incomplete';
+            return cmiRef.current[element] || '';
           },
           LMSSetValue: (element, value) => {
-            console.log(`SCORM 1.2 SetValue: ${element} -> ${value}`);
-            if (element === 'cmi.core.lesson_status') {
-               onStatusSet(value);
-            } else if (element === 'cmi.core.score.raw') {
-               const score = parseInt(value);
-               if (!isNaN(score)) onStatusSet('incomplete', score);
-            }
+            addLog(`📝 1.2 Set: ${element}`);
+            cmiRef.current[element] = value;
+            if (element === 'cmi.core.lesson_status') onStatusSet(value);
+            else if (element === 'cmi.core.score.raw') onStatusSet('incomplete', parseInt(value));
+            else syncToBackend(); // Sync location/suspend_data immediately
             return 'true';
           },
-          LMSCommit: (v) => { console.log('SCORM 1.2 Commit'); return 'true'; },
+          LMSCommit: () => { syncToBackend(); return 'true'; },
           LMSGetLastError: () => '0',
           LMSGetErrorString: () => 'No error',
           LMSGetDiagnostic: () => 'No error',
         };
 
-        // SCORM 2004
+        // 5. SCORM 2004 API
         window.API_1484_11 = {
-          Initialize: () => { console.log('SCORM 2004 Initialized'); return 'true'; },
-          Terminate: () => { console.log('SCORM 2004 Terminated'); return 'true'; },
+          Initialize: () => { 
+            addLog('🔌 SCORM 2004 Initialized'); 
+            const entryStr = (cmiRef.current['cmi.suspend_data'] || cmiRef.current['cmi.location']) ? 'resume' : 'ab-initio';
+            cmiRef.current['cmi.entry'] = entryStr;
+            return 'true'; 
+          },
+          Terminate: () => { syncToBackend(); addLog('🔌 SCORM 2004 Terminated'); return 'true'; },
           GetValue: (element) => {
-            console.log(`SCORM 2004 GetValue: ${element}`);
-            if (element === 'cmi.completion_status') return 'incomplete';
-            if (element === 'cmi.score.raw') return '0';
-            return '';
+            if (element === 'cmi.entry') return cmiRef.current['cmi.entry'] || 'ab-initio';
+            if (element === 'cmi.credit') return 'credit';
+            if (element === 'cmi.mode') return 'normal';
+            if (element === 'cmi.learner_id') return user?.id || 'guest';
+            if (element === 'cmi.learner_name') return user?.name || 'Guest Student';
+            if (element === 'cmi.completion_status' || element === 'cmi.success_status') return cmiRef.current[element] || 'incomplete';
+            return cmiRef.current[element] || '';
           },
           SetValue: (element, value) => {
-            console.log(`SCORM 2004 SetValue: ${element} -> ${value}`);
-            if (element === 'cmi.completion_status' || element === 'cmi.success_status') {
-              onStatusSet(value);
-            } else if (element === 'cmi.progress_measure') {
-              const progress = Math.round(parseFloat(value) * 100);
-              onStatusSet('incomplete', progress);
-            } else if (element === 'cmi.score.raw') {
-              const score = parseInt(value);
-              if (!isNaN(score)) onStatusSet('incomplete', score);
-            }
+            addLog(`📝 2004 Set: ${element}`);
+            cmiRef.current[element] = value;
+            if (element === 'cmi.completion_status' || element === 'cmi.success_status') onStatusSet(value);
+            else if (element === 'cmi.progress_measure') onStatusSet('incomplete', Math.round(parseFloat(value) * 100));
+            else if (element === 'cmi.score.raw') onStatusSet('incomplete', parseInt(value));
+            else syncToBackend(); // Sync location/suspend_data immediately
             return 'true';
           },
-          Commit: (v) => { console.log('SCORM 2004 Commit'); return 'true'; },
+          Commit: () => { syncToBackend(); return 'true'; },
           GetLastError: () => '0',
           GetErrorString: () => 'No error',
           GetDiagnostic: () => 'No error',
         };
+
+        autoSaveTimer = setInterval(syncToBackend, 30000);
+        setIsDataReady(true);
 
       } catch (err) {
         console.error('SCORM Player Error:', err);
@@ -151,7 +213,26 @@ const ScormPlayerPage = () => {
 
     loadCourse();
 
+    const handleUnload = () => {
+      const data = JSON.stringify({ 
+        userId: user?.id, 
+        courseId, 
+        suspendData: cmiRef.current['cmi.suspend_data'],
+        lessonLocation: cmiRef.current['cmi.core.lesson_location'] || cmiRef.current['cmi.location'],
+        status: cmiRef.current['cmi.core.lesson_status'] || cmiRef.current['cmi.completion_status']
+      });
+      fetch('/api/payments/suspend', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: data,
+        keepalive: true
+      });
+    };
+    window.addEventListener('beforeunload', handleUnload);
+
     return () => {
+      if (autoSaveTimer) clearInterval(autoSaveTimer);
+      window.removeEventListener('beforeunload', handleUnload);
       delete window.API;
       delete window.API_1484_11;
     };
@@ -197,36 +278,56 @@ const ScormPlayerPage = () => {
             <span className="hidden sm:inline">Back to Dashboard</span>
           </button>
           <div className="w-px h-6 bg-white/10" />
-          <div>
-            <h1 className="text-white font-black text-sm sm:text-base leading-tight line-clamp-1">
-              {course?.title}
-            </h1>
-            {course?.instructor && (
-              <p className="text-slate-400 text-xs font-medium">{course.instructor}</p>
-            )}
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="text-white font-black text-sm sm:text-base leading-tight line-clamp-1">
+                {course?.title}
+              </h1>
+              {course?.instructor && (
+                <p className="text-slate-400 text-xs font-medium">{course.instructor}</p>
+              )}
+            </div>
           </div>
         </div>
 
-        <button
-          onClick={toggleFullscreen}
-          title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-          className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-all"
-        >
-          {isFullscreen ? <FiMinimize2 className="w-5 h-5" /> : <FiMaximize2 className="w-5 h-5" />}
-        </button>
+        <div className="flex items-center gap-4">
+           {/* Visual Logs for Debugging */}
+           <div className="hidden lg:flex flex-col items-end gap-1 overflow-hidden h-10 pr-4">
+              {logs.map((log, i) => (
+                <div key={i} className={`text-[10px] font-bold ${i === 0 ? 'text-primary' : 'text-slate-500'}`}>
+                  {log}
+                </div>
+              ))}
+           </div>
+
+          <button
+            onClick={toggleFullscreen}
+            title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+            className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+          >
+            {isFullscreen ? <FiMinimize2 className="w-5 h-5" /> : <FiMaximize2 className="w-5 h-5" />}
+          </button>
+        </div>
       </div>
 
-      {/* SCORM iframe */}
+      {/* SCORM iframe (Only loads when data is ready) */}
       <div className="flex-1 relative">
-        <iframe
-          id="scorm-frame"
-          src={entryPoint}
-          title={course?.title || 'SCORM Course'}
-          className="w-full h-full border-0"
-          style={{ minHeight: isFullscreen ? 'calc(100vh - 72px)' : 'calc(100vh - 72px)' }}
-          allowFullScreen
-          allow="fullscreen"
-        />
+        {isDataReady && entryPoint ? (
+          <iframe
+            id="scorm-frame"
+            src={entryPoint}
+            title={course?.title || 'SCORM Course'}
+            className="w-full h-full border-0"
+            style={{ minHeight: 'calc(100vh - 72px)' }}
+            allowFullScreen
+            allow="fullscreen"
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#0F172A]">
+             <FiLoader className="w-10 h-10 animate-spin text-primary" />
+             <p className="text-slate-400 font-bold">Restoring your progress…</p>
+          </div>
+        )}
       </div>
     </div>
   );

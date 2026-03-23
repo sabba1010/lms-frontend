@@ -117,6 +117,8 @@ const StudentDashboard = () => {
             userId={user?.id} 
           />
         );
+      case 'My Certificates':
+        return <MyCertificates certificates={certificates} />;
       case 'Schedule':
         return <Schedule upcomingTasks={upcomingTasks} />;
       default:

@@ -71,6 +71,12 @@ const Sidebar = ({ activeTab, setActiveTab, isSidebarOpen, setIsSidebarOpen, han
               active={activeTab === 'My Courses'} 
               onClick={() => { setActiveTab('My Courses'); setIsSidebarOpen(false); }} 
             />
+            <NavItem 
+              icon={<FiAward />} 
+              label="My Certificates" 
+              active={activeTab === 'My Certificates'} 
+              onClick={() => { setActiveTab('My Certificates'); setIsSidebarOpen(false); }} 
+            />
             {/* <NavItem 
               icon={<FiCalendar />} 
               label="Schedule" 

@@ -32,27 +32,27 @@ const StudentDashboard = () => {
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
 
+  const fetchEnrolledCourses = async () => {
+    if (!user?.id) {
+      setLoadingCourses(false);
+      return;
+    }
+    try {
+      setLoadingCourses(true);
+      const res = await fetch(`${PAYMENTS_API}/enrolled/${user.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setEnrolledCourses(data);
+      }
+    } catch (err) {
+      console.error('Error fetching enrolled courses:', err);
+    } finally {
+      setLoadingCourses(false);
+    }
+  };
+
   // Fetch real enrolled courses whenever the dashboard loads
   useEffect(() => {
-    const fetchEnrolledCourses = async () => {
-      if (!user?.id) {
-        setLoadingCourses(false);
-        return;
-      }
-      try {
-        setLoadingCourses(true);
-        const res = await fetch(`${PAYMENTS_API}/enrolled/${user.id}`);
-        if (res.ok) {
-          const data = await res.json();
-          setEnrolledCourses(data);
-        }
-      } catch (err) {
-        console.error('Error fetching enrolled courses:', err);
-      } finally {
-        setLoadingCourses(false);
-      }
-    };
-
     fetchEnrolledCourses();
   }, [user]);
 
@@ -111,7 +111,11 @@ const StudentDashboard = () => {
             <span className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
           </div>
         ) : (
-          <MyCourses enrolledCourses={enrolledCourses} />
+          <MyCourses 
+            enrolledCourses={enrolledCourses} 
+            refreshCourses={fetchEnrolledCourses} 
+            userId={user?.id} 
+          />
         );
       case 'Schedule':
         return <Schedule upcomingTasks={upcomingTasks} />;
@@ -123,6 +127,8 @@ const StudentDashboard = () => {
             upcomingTasks={upcomingTasks}
             setActiveTab={setActiveTab}
             loadingCourses={loadingCourses}
+            refreshCourses={fetchEnrolledCourses}
+            userId={user?.id}
           />
         );
     }

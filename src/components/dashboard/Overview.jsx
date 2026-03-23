@@ -3,9 +3,25 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { FiChevronRight, FiCalendar, FiPlayCircle } from 'react-icons/fi';
 
-const Overview = ({ stats, enrolledCourses, upcomingTasks, setActiveTab, loadingCourses }) => {
+const Overview = ({ stats, enrolledCourses, upcomingTasks, setActiveTab, loadingCourses, refreshCourses, userId }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  const handleMarkComplete = async (courseId) => {
+    if (!userId) return;
+    try {
+      const res = await fetch('/api/scorm/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, courseId }),
+      });
+      if (res.ok) {
+        refreshCourses?.();
+      }
+    } catch (err) {
+      console.error('Error marking course complete:', err);
+    }
+  };
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -98,21 +114,33 @@ const Overview = ({ stats, enrolledCourses, upcomingTasks, setActiveTab, loading
                   <div className="p-5 sm:p-6">
                     <h4 className="font-bold text-dark text-lg mb-4 line-clamp-1">{course.title}</h4>
                     <div className="mb-4" />
-                    {hasScorm ? (
-                      <button
-                        onClick={() => navigate(`/scorm-player/${courseId}`)}
-                        className="w-full flex items-center justify-center gap-2 bg-primary text-white font-bold py-3.5 rounded-2xl hover:bg-primary-dark transition-all duration-300"
-                      >
-                        <FiPlayCircle /> {progress > 0 ? 'Continue' : 'Start Course'}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => navigate(`/courses/${courseId}`)}
-                        className="w-full flex items-center justify-center gap-2 bg-[#F1F5F9] text-dark font-bold py-3.5 rounded-2xl hover:bg-primary hover:text-white transition-all duration-300"
-                      >
-                        View Course <FiChevronRight />
-                      </button>
-                    )}
+                    
+                    <div className="space-y-3">
+                      {hasScorm ? (
+                        <button
+                          onClick={() => navigate(`/scorm-player/${courseId}`)}
+                          className="w-full flex items-center justify-center gap-2 bg-primary text-white font-bold py-3.5 rounded-2xl hover:bg-primary-dark transition-all duration-300 shadow-lg shadow-primary/20"
+                        >
+                          <FiPlayCircle /> {progress > 0 ? 'Continue' : 'Start Course'}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => navigate(`/courses/${courseId}`)}
+                          className="w-full flex items-center justify-center gap-2 bg-[#F1F5F9] text-dark font-bold py-3.5 rounded-2xl hover:bg-primary hover:text-white transition-all duration-300"
+                        >
+                          View Course <FiChevronRight />
+                        </button>
+                      )}
+
+                      {progress < 100 && (
+                        <button
+                          onClick={() => handleMarkComplete(courseId)}
+                          className="w-full flex items-center justify-center gap-2 bg-green-50 text-green-600 font-bold py-2.5 rounded-2xl hover:bg-green-600 hover:text-white transition-all duration-300 border border-green-100 text-sm"
+                        >
+                          Mark as Complete
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

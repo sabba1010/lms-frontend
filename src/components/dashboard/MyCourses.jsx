@@ -2,8 +2,24 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiPlayCircle, FiChevronRight, FiBookOpen } from 'react-icons/fi';
 
-const MyCourses = ({ enrolledCourses }) => {
+const MyCourses = ({ enrolledCourses, refreshCourses, userId }) => {
   const navigate = useNavigate();
+
+  const handleMarkComplete = async (courseId) => {
+    if (!userId) return;
+    try {
+      const res = await fetch('/api/scorm/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, courseId }),
+      });
+      if (res.ok) {
+        refreshCourses?.();
+      }
+    } catch (err) {
+      console.error('Error marking course complete:', err);
+    }
+  };
 
   if (!enrolledCourses || enrolledCourses.length === 0) {
     return (
@@ -59,23 +75,34 @@ const MyCourses = ({ enrolledCourses }) => {
               <div className="p-5 sm:p-6">
                 <h4 className="font-bold text-dark text-lg mb-4 line-clamp-2">{course.title}</h4>
 
-                {/* Action Button */}
-                {hasScorm ? (
-                  <button
-                    onClick={() => navigate(`/scorm-player/${courseId}`)}
-                    className="w-full flex items-center justify-center gap-2 bg-primary text-white font-bold py-4 rounded-2xl hover:bg-primary-dark transition-all duration-300 shadow-lg shadow-primary/20"
-                  >
-                    <FiPlayCircle className="w-5 h-5" />
-                    {progress > 0 ? 'Continue Course' : 'Start Course'}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => navigate(`/courses/${courseId}`)}
-                    className="w-full flex items-center justify-center gap-2 bg-[#F1F5F9] text-dark font-bold py-4 rounded-2xl hover:bg-primary hover:text-white transition-all duration-300"
-                  >
-                    View Course <FiChevronRight />
-                  </button>
-                )}
+                {/* Action Buttons */}
+                <div className="space-y-3">
+                  {hasScorm ? (
+                    <button
+                      onClick={() => navigate(`/scorm-player/${courseId}`)}
+                      className="w-full flex items-center justify-center gap-2 bg-primary text-white font-bold py-4 rounded-2xl hover:bg-primary-dark transition-all duration-300 shadow-lg shadow-primary/20"
+                    >
+                      <FiPlayCircle className="w-5 h-5" />
+                      {progress > 0 ? 'Continue Course' : 'Start Course'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => navigate(`/courses/${courseId}`)}
+                      className="w-full flex items-center justify-center gap-2 bg-[#F1F5F9] text-dark font-bold py-4 rounded-2xl hover:bg-primary hover:text-white transition-all duration-300"
+                    >
+                      View Course <FiChevronRight />
+                    </button>
+                  )}
+
+                  {progress < 100 && (
+                    <button
+                      onClick={() => handleMarkComplete(courseId)}
+                      className="w-full flex items-center justify-center gap-2 bg-green-50 text-green-600 font-bold py-3 rounded-2xl hover:bg-green-600 hover:text-white transition-all duration-300 border border-green-100"
+                    >
+                      Mark as Complete
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           );

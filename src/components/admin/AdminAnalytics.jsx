@@ -77,7 +77,7 @@ const AdminAnalytics = () => {
       </div>
 
       {/* Primary Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <MetricCard 
           label="Total Revenue" 
           value={statsData?.revenue || '$0'} 
@@ -91,6 +91,13 @@ const AdminAnalytics = () => {
           icon={<FiUsers />} 
           trend="+5.2%" 
           color="bg-blue-500" 
+        />
+        <MetricCard 
+          label="Total Companies" 
+          value={statsData?.totalCompanies || '0'} 
+          icon={<FiActivity />} 
+          trend="Partners" 
+          color="bg-indigo-600" 
         />
         <MetricCard 
           label="Active Courses" 

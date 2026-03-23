@@ -99,34 +99,19 @@ const AdminAnalytics = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Revenue Breakdown/Mock Chart */}
-        <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm lg:col-span-2">
+        {/* Revenue Line Chart */}
+        <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm lg:col-span-2 relative overflow-hidden">
            <div className="flex items-center justify-between mb-8">
               <div>
                  <h3 className="font-bold text-dark text-xl tracking-tight">Revenue Stream</h3>
-                 <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Monthly financial overview</p>
+                 <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Yearly financial trend</p>
               </div>
               <FiTrendingUp className="text-emerald-500 w-8 h-8" />
            </div>
            
-           <div className="flex items-end justify-between h-64 gap-3 sm:gap-6 px-2 sm:px-4">
-              {statsData?.monthlyRevenue?.map((data, idx) => {
-                 const maxRev = Math.max(...statsData.monthlyRevenue.map(m => m.revenue), 1);
-                 const heightPercent = Math.max((data.revenue / maxRev) * 100, 5); 
-                 const isLatest = idx === statsData.monthlyRevenue.length - 1;
-                 
-                 return (
-                   <BigBar 
-                     key={idx} 
-                     height={`${heightPercent}%`} 
-                     label={data.month} 
-                     value={`$${(data.revenue || 0).toLocaleString()}`}
-                     active={isLatest} 
-                   />
-                 );
-              })}
+           <div className="h-64 mt-4">
+             <RevenueLineChart data={statsData?.monthlyRevenue || []} />
            </div>
-
         </div>
 
         {/* Course Popularity */}
@@ -214,27 +199,142 @@ const MetricCard = ({ label, value, icon, trend, color }) => (
   </div>
 );
 
-const BigBar = ({ height, label, value, active = false }) => (
-  <div className="flex-1 h-full flex flex-col items-center gap-4 group">
-     <div className="w-full relative flex-1 flex flex-col justify-end min-h-[1px]">
-        {/* Value Tooltip/Label */}
-        <div className={`absolute -top-8 left-1/2 -translate-x-1/2 bg-dark text-white text-[10px] font-black px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-10 whitespace-nowrap mb-1 ${active ? 'opacity-100 -top-10 scale-110 !bg-primary' : ''}`}>
-           {value}
-           <div className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 ${active ? 'bg-primary' : 'bg-dark'}`}></div>
-        </div>
+const RevenueLineChart = ({ data }) => {
+  const [hoverIdx, setHoverIdx] = useState(null);
+  
+  if (!data || data.length === 0) return null;
 
+  const width = 800;
+  const height = 240;
+  const padding = { top: 30, right: 40, bottom: 50, left: 20 };
+  
+  const maxRevenue = Math.max(...data.map(d => d.revenue), 100);
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+  
+  // Calculate coordinates
+  const points = data.map((d, i) => {
+    const x = padding.left + (i * (chartWidth / (data.length - 1)));
+    const y = padding.top + chartHeight - (d.revenue / maxRevenue * chartHeight);
+    return { x, y, revenue: d.revenue, month: d.month };
+  });
+
+  // SVG Path string
+  const pathData = points.reduce((acc, point, i) => {
+    return acc + (i === 0 ? `M ${point.x} ${point.y}` : ` L ${point.x} ${point.y}`);
+  }, "");
+
+  return (
+    <div className="relative w-full h-full group/chart">
+      <svg 
+        viewBox={`0 0 ${width} ${height}`} 
+        className="w-full h-full overflow-visible"
+        preserveAspectRatio="none"
+      >
+        {/* Grid Lines */}
+        {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
+          <line 
+            key={i}
+            x1={padding.left}
+            y1={padding.top + i * (chartHeight / 4)}
+            x2={width - padding.right}
+            y2={padding.top + i * (chartHeight / 4)}
+            stroke="#F1F5F9"
+            strokeWidth="1"
+          />
+        ))}
+
+        {/* Area under the curve */}
+        <path 
+          d={`${pathData} L ${points[points.length-1].x} ${padding.top + chartHeight} L ${points[0].x} ${padding.top + chartHeight} Z`}
+          fill="url(#chartGradient)"
+          className="opacity-20"
+        />
+
+        {/* Main Line */}
+        <path 
+          d={pathData} 
+          fill="none" 
+          stroke="var(--color-primary, #3b82f6)" 
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="drop-shadow-lg"
+        />
+
+        <defs>
+          <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--color-primary, #3b82f6)" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="var(--color-primary, #3b82f6)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* Interactive Points */}
+        {points.map((p, i) => (
+           <g 
+             key={i} 
+             onMouseEnter={() => setHoverIdx(i)}
+             onMouseLeave={() => setHoverIdx(null)}
+             className="cursor-pointer"
+           >
+             <circle 
+               cx={p.x} 
+               cy={p.y} 
+               r={hoverIdx === i ? "10" : "6"} 
+               fill="white" 
+               stroke="var(--color-primary, #3b82f6)" 
+               strokeWidth="3"
+               className="transition-all duration-300"
+             />
+             {/* Virtual Hit Box */}
+             <rect 
+               x={p.x - 20} 
+               y={0} 
+               width={40} 
+               height={height} 
+               fill="transparent" 
+             />
+           </g>
+        ))}
+
+        {/* X-axis Labels */}
+        {points.map((p, i) => (
+          <text 
+            key={i}
+            x={p.x}
+            y={padding.top + chartHeight + 30}
+            textAnchor="end"
+            transform={`rotate(-45, ${p.x}, ${padding.top + chartHeight + 30})`}
+            className="text-[10px] font-black fill-slate-400 uppercase tracking-widest"
+          >
+            {p.month}
+          </text>
+        ))}
+      </svg>
+
+      {/* Tooltip Overlay */}
+      {hoverIdx !== null && (
         <div 
-          className={`w-full rounded-2xl transition-all duration-700 relative overflow-hidden ${active ? 'bg-primary shadow-lg shadow-primary/30' : 'bg-slate-100 hover:bg-slate-200'}`}
-          style={{ height: height || '0%' }}
+          className="absolute bg-dark text-white p-3 rounded-2xl shadow-2xl z-20 pointer-events-none animate-in fade-in zoom-in-95 duration-200"
+          style={{ 
+            left: `${(points[hoverIdx].x / width) * 100}%`,
+            top: `${(points[hoverIdx].y / height) * 100 - 15}%`,
+            transform: 'translate(-50%, -100%)',
+            minWidth: '100px'
+          }}
         >
-           {active && (
-             <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent"></div>
-           )}
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+            {points[hoverIdx].month} Revenue
+          </div>
+          <div className="text-sm font-black text-white">
+            ${points[hoverIdx].revenue.toLocaleString()}
+          </div>
+          <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-dark rotate-45"></div>
         </div>
-     </div>
-     <span className={`text-[10px] sm:text-xs font-black tracking-widest uppercase transition-colors shrink-0 ${active ? 'text-primary' : 'text-slate-400'}`}>{label}</span>
-  </div>
-);
+      )}
+    </div>
+  );
+};
 
 const CourseRow = ({ label, color, percent }) => (
   <div className="space-y-2">

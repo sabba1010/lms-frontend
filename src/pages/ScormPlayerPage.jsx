@@ -136,7 +136,7 @@ const ScormPlayerPage = () => {
         };
 
         // 4. SCORM 1.2 API
-        window.API = {
+        const scorm12API = {
           LMSInitialize: () => { 
             addLog('🔌 SCORM 1.2 Initialized'); 
             const entryStr = (cmiRef.current['cmi.suspend_data'] || cmiRef.current['cmi.core.lesson_location']) ? 'resume' : 'ab-initio';
@@ -172,8 +172,12 @@ const ScormPlayerPage = () => {
           LMSGetDiagnostic: () => 'No error',
         };
 
+        window.API = scorm12API;
+        if (window.parent && window.parent !== window) window.parent.API = scorm12API;
+        if (window.top && window.top !== window) window.top.API = scorm12API;
+
         // 5. SCORM 2004 API
-        window.API_1484_11 = {
+        const scorm2004API = {
           Initialize: () => { 
             addLog('🔌 SCORM 2004 Initialized'); 
             const entryStr = (cmiRef.current['cmi.suspend_data'] || cmiRef.current['cmi.location']) ? 'resume' : 'ab-initio';
@@ -185,8 +189,8 @@ const ScormPlayerPage = () => {
             if (element === 'cmi.entry') return cmiRef.current['cmi.entry'] || 'ab-initio';
             if (element === 'cmi.credit') return 'credit';
             if (element === 'cmi.mode') return 'normal';
-            if (element === 'cmi.learner_id') return user?.id || 'guest';
-            if (element === 'cmi.learner_name') return user?.name || 'Guest Student';
+            if (element === 'learner_id') return user?.id || 'guest';
+            if (element === 'learner_name') return user?.name || 'Guest Student';
             if (element === 'cmi.completion_status' || element === 'cmi.success_status') return cmiRef.current[element] || 'incomplete';
             return cmiRef.current[element] || '';
           },
@@ -212,9 +216,13 @@ const ScormPlayerPage = () => {
           GetDiagnostic: () => 'No error',
         };
 
+        window.API_1484_11 = scorm2004API;
+        if (window.parent && window.parent !== window) window.parent.API_1484_11 = scorm2004API;
+        if (window.top && window.top !== window) window.top.API_1484_11 = scorm2004API;
+
         const deepPeekProgress = () => {
           try {
-            const iframe = document.getElementById('scorm-iframe');
+            const iframe = document.getElementById('scorm-frame');
             if (!iframe || !iframe.contentWindow) return;
             
             const win = iframe.contentWindow;
@@ -281,6 +289,8 @@ const ScormPlayerPage = () => {
       window.removeEventListener('beforeunload', handleUnload);
       delete window.API;
       delete window.API_1484_11;
+      if (window.parent) { delete window.parent.API; delete window.parent.API_1484_11; }
+      if (window.top) { delete window.top.API; delete window.top.API_1484_11; }
     };
   }, [courseId, user]);
 

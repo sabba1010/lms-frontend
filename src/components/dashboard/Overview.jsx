@@ -44,42 +44,7 @@ const Overview = ({ stats, enrolledCourses, upcomingTasks, setActiveTab, loading
         ))}
       </div>
 
-      {/* Learning Progress Graph */}
-      {!loadingCourses && enrolledCourses.length > 0 && (
-        <div className="bg-white p-6 sm:p-10 rounded-[40px] border border-slate-100 shadow-sm animate-in fade-in zoom-in duration-700">
-           <div className="flex items-center justify-between mb-10">
-              <div>
-                 <h2 className="text-2xl font-black text-dark tracking-tight">Learning Progress</h2>
-                 <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">Completion % per course</p>
-              </div>
-              <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center text-xl">
-                 <FiPlayCircle />
-              </div>
-           </div>
-           <div className="flex items-end justify-around h-64 gap-4 px-2">
-              {enrolledCourses.slice(0, 6).map((course, idx) => (
-                <div key={idx} className="flex-1 h-full flex flex-col items-center gap-4 group">
-                   <div className="w-full relative flex-1 flex flex-col justify-end min-h-[1px]">
-                      <div 
-                        className={`w-full rounded-2xl transition-all duration-1000 relative overflow-hidden bg-slate-100 group-hover:bg-slate-200 cursor-pointer`}
-                        style={{ height: `${course.progress || 5}%` }}
-                        title={`${course.title}: ${course.progress}%`}
-                      >
-                         <div className="absolute inset-0 bg-primary/20"></div>
-                         <div 
-                           className="absolute bottom-0 inset-x-0 bg-primary rounded-t-lg transition-all duration-1000"
-                           style={{ height: '100%' }}
-                         />
-                      </div>
-                   </div>
-                   <span className="text-[10px] sm:text-xs font-black text-slate-400 uppercase tracking-tight truncate w-full text-center">
-                      {course.title.split(' ')[0]}
-                   </span>
-                </div>
-              ))}
-           </div>
-        </div>
-      )}
+      {/* Current Courses Area */}
 
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -132,14 +97,7 @@ const Overview = ({ stats, enrolledCourses, upcomingTasks, setActiveTab, loading
                   </div>
                   <div className="p-5 sm:p-6">
                     <h4 className="font-bold text-dark text-lg mb-4 line-clamp-1">{course.title}</h4>
-                    <div className="mb-6">
-                      <div className="flex justify-between text-[13px] font-bold text-slate-500 mb-2">
-                        <span>{progress}% Completed</span>
-                      </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                        <div className="bg-primary h-full rounded-full transition-all duration-700" style={{ width: `${progress}%` }} />
-                      </div>
-                    </div>
+                    <div className="mb-4" />
                     {hasScorm ? (
                       <button
                         onClick={() => navigate(`/scorm-player/${courseId}`)}

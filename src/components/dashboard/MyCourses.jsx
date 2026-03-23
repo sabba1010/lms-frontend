@@ -59,24 +59,6 @@ const MyCourses = ({ enrolledCourses }) => {
               <div className="p-5 sm:p-6">
                 <h4 className="font-bold text-dark text-lg mb-4 line-clamp-2">{course.title}</h4>
 
-                {/* Progress bar */}
-                <div className="mb-5">
-                  <div className="flex justify-between text-[13px] font-bold text-slate-500 mb-2">
-                    <span>{progress}% Completed</span>
-                    <span className="text-xs text-slate-400">
-                      {course.enrolledAt
-                        ? `Enrolled ${new Date(course.enrolledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
-                        : ''}
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-primary h-full rounded-full transition-all duration-700"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                </div>
-
                 {/* Action Button */}
                 {hasScorm ? (
                   <button

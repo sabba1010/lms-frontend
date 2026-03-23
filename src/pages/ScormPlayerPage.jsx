@@ -156,9 +156,11 @@ const ScormPlayerPage = () => {
           LMSSetValue: (element, value) => {
             addLog(`📝 1.2 Set: ${element}`);
             cmiRef.current[element] = value;
-            if (element === 'cmi.core.lesson_status') onStatusSet(value);
-            else if (element === 'cmi.core.score.raw') onStatusSet('incomplete', parseInt(value));
-            else syncToBackend(); // Sync location/suspend_data immediately
+            if (element === 'cmi.core.lesson_status') {
+              onStatusSet(value);
+            } else {
+              syncToBackend(); 
+            }
             return 'true';
           },
           LMSCommit: () => { syncToBackend(); return 'true'; },
@@ -188,10 +190,11 @@ const ScormPlayerPage = () => {
           SetValue: (element, value) => {
             addLog(`📝 2004 Set: ${element}`);
             cmiRef.current[element] = value;
-            if (element === 'cmi.completion_status' || element === 'cmi.success_status') onStatusSet(value);
-            else if (element === 'cmi.progress_measure') onStatusSet('incomplete', Math.round(parseFloat(value) * 100));
-            else if (element === 'cmi.score.raw') onStatusSet('incomplete', parseInt(value));
-            else syncToBackend(); // Sync location/suspend_data immediately
+            if (element === 'cmi.completion_status' || element === 'cmi.success_status') {
+              onStatusSet(value);
+            } else {
+              syncToBackend();
+            }
             return 'true';
           },
           Commit: () => { syncToBackend(); return 'true'; },

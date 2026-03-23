@@ -67,6 +67,12 @@ const AdminSidebar = ({ activeTab, setActiveTab, isSidebarOpen, setIsSidebarOpen
               onClick={() => { setActiveTab('Dashboard'); setIsSidebarOpen(false); }} 
             />
             <NavItem 
+              icon={<FiBarChart2 />} 
+              label="Platform Analytics" 
+              active={activeTab === 'Platform Analytics'} 
+              onClick={() => { setActiveTab('Platform Analytics'); setIsSidebarOpen(false); }} 
+            />
+            <NavItem 
               icon={<FiUsers />} 
               label="Manage Users" 
               active={activeTab === 'Manage Users'} 
@@ -77,12 +83,6 @@ const AdminSidebar = ({ activeTab, setActiveTab, isSidebarOpen, setIsSidebarOpen
               label="Manage Courses" 
               active={activeTab === 'Manage Courses'} 
               onClick={() => { setActiveTab('Manage Courses'); setIsSidebarOpen(false); }} 
-            />
-            <NavItem 
-              icon={<FiBarChart2 />} 
-              label="Platform Analytics" 
-              active={activeTab === 'Platform Analytics'} 
-              onClick={() => { setActiveTab('Platform Analytics'); setIsSidebarOpen(false); }} 
             />
             <NavItem 
               icon={<FiDollarSign />} 

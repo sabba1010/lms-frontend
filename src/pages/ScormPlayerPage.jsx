@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiMaximize2, FiMinimize2, FiLoader } from 'react-icons/fi';
+import { useAuth } from '../context/AuthContext';
 
 const SCORM_API = '/api/scorm';
 const COURSES_API = '/api/courses';
@@ -8,12 +9,36 @@ const COURSES_API = '/api/courses';
 const ScormPlayerPage = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const completionSentRef = useRef(false);
 
   const [course, setCourse] = useState(null);
   const [entryPoint, setEntryPoint] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const handleCompletion = async () => {
+    if (completionSentRef.current || !user?.id) return;
+    
+    try {
+      completionSentRef.current = true;
+      console.log('SCORM Completion Detected. Sending to backend...');
+      
+      const res = await fetch(`${SCORM_API}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, courseId })
+      });
+      
+      if (res.ok) {
+        console.log('Database updated successfully for course completion.');
+      }
+    } catch (err) {
+      console.error('Error reporting SCORM completion:', err);
+      completionSentRef.current = false; // Retry on failure if needed, or keep blocked
+    }
+  };
 
   useEffect(() => {
     const loadCourse = async () => {
@@ -33,37 +58,34 @@ const ScormPlayerPage = () => {
         }
         const scormData = await scormRes.json();
         
-        // Ensure entryPoint is a valid string and doesn't contain 'undefined'
         if (!scormData.entryPoint || scormData.entryPoint.includes('undefined')) {
            throw new Error('Invalid SCORM entry point. Please check the package manifest.');
         }
 
-        // Build relative URL to the SCORM entry point (handled by proxy)
         setEntryPoint(scormData.entryPoint);
 
-        // Expose SCORM API to the window for the iframe to access
+        // SCORM API Implementation
+        const onStatusSet = (status) => {
+          const lowerStatus = status.toLowerCase();
+          if (lowerStatus === 'completed' || lowerStatus === 'passed') {
+            handleCompletion();
+          }
+        };
+
         // SCORM 1.2
         window.API = {
-          LMSInitialize: () => {
-            console.log('SCORM API: LMSInitialize');
-            return 'true';
-          },
-          LMSFinish: () => {
-            console.log('SCORM API: LMSFinish');
-            return 'true';
-          },
+          LMSInitialize: () => 'true',
+          LMSFinish: () => 'true',
           LMSGetValue: (element) => {
-            console.log(`SCORM API: LMSGetValue(${element})`);
+            if (element === 'cmi.core.lesson_status') return 'incomplete';
             return '';
           },
           LMSSetValue: (element, value) => {
-            console.log(`SCORM API: LMSSetValue(${element}, ${value})`);
+            console.log(`SCORM 1.2: ${element} -> ${value}`);
+            if (element === 'cmi.core.lesson_status') onStatusSet(value);
             return 'true';
           },
-          LMSCommit: (element) => {
-            console.log('SCORM API: LMSCommit');
-            return 'true';
-          },
+          LMSCommit: () => 'true',
           LMSGetLastError: () => '0',
           LMSGetErrorString: () => 'No error',
           LMSGetDiagnostic: () => 'No error',
@@ -71,26 +93,18 @@ const ScormPlayerPage = () => {
 
         // SCORM 2004
         window.API_1484_11 = {
-          Initialize: () => {
-            console.log('SCORM API: Initialize');
-            return 'true';
-          },
-          Terminate: () => {
-            console.log('SCORM API: Terminate');
-            return 'true';
-          },
+          Initialize: () => 'true',
+          Terminate: () => 'true',
           GetValue: (element) => {
-            console.log(`SCORM API: GetValue(${element})`);
+            if (element === 'cmi.completion_status') return 'incomplete';
             return '';
           },
           SetValue: (element, value) => {
-            console.log(`SCORM API: SetValue(${element}, ${value})`);
+            console.log(`SCORM 2004: ${element} -> ${value}`);
+            if (element === 'cmi.completion_status' || element === 'cmi.success_status') onStatusSet(value);
             return 'true';
           },
-          Commit: (element) => {
-            console.log('SCORM API: Commit');
-            return 'true';
-          },
+          Commit: () => 'true',
           GetLastError: () => '0',
           GetErrorString: () => 'No error',
           GetDiagnostic: () => 'No error',
@@ -106,12 +120,11 @@ const ScormPlayerPage = () => {
 
     loadCourse();
 
-    // Cleanup API on unmount
     return () => {
       delete window.API;
       delete window.API_1484_11;
     };
-  }, [courseId]);
+  }, [courseId, user]);
 
   const toggleFullscreen = () => setIsFullscreen((prev) => !prev);
 

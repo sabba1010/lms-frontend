@@ -6,7 +6,9 @@ import {
   FiDollarSign, 
   FiActivity, 
   FiPieChart,
-  FiArrowUpRight
+  FiArrowUpRight,
+  FiChevronLeft,
+  FiChevronRight
 } from 'react-icons/fi';
 
 const API_URL = '/api/stats';
@@ -14,12 +16,19 @@ const API_URL = '/api/stats';
 const AdminAnalytics = () => {
   const [statsData, setStatsData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [chartLoading, setChartLoading] = useState(false);
   const [filterDays, setFilterDays] = useState(null); // null = All Time, 30 = Last 30 Days
+  const [monthOffset, setMonthOffset] = useState(0); // 0 = Current year, 1 = Previous year, etc.
 
   const fetchStats = async () => {
     try {
-      setLoading(true);
-      const url = filterDays ? `/api/stats?days=${filterDays}` : '/api/stats';
+      // Only show global spinner on first load
+      if (!statsData) setLoading(true);
+      else setChartLoading(true);
+
+      let url = filterDays ? `/api/stats?days=${filterDays}` : '/api/stats';
+      url += url.includes('?') ? `&offset=${monthOffset}` : `?offset=${monthOffset}`;
+      
       const res = await fetch(url);
       const data = await res.json();
       setStatsData(data);
@@ -27,14 +36,15 @@ const AdminAnalytics = () => {
       console.error('Error fetching admin stats:', err);
     } finally {
       setLoading(false);
+      setChartLoading(false);
     }
   };
 
   useEffect(() => {
     fetchStats();
-  }, [filterDays]);
+  }, [filterDays, monthOffset]);
 
-  if (loading) {
+  if (loading && !statsData) {
     return (
       <div className="flex items-center justify-center p-20">
         <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
@@ -106,11 +116,35 @@ const AdminAnalytics = () => {
                  <h3 className="font-bold text-dark text-xl tracking-tight">Revenue Stream</h3>
                  <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Yearly financial trend</p>
               </div>
-              <FiTrendingUp className="text-emerald-500 w-8 h-8" />
+              <div className="flex items-center gap-3">
+                 <div className="flex items-center bg-slate-50 rounded-xl p-1 border border-slate-100 mr-2">
+                    <button 
+                      onClick={() => setMonthOffset(prev => prev + 1)}
+                      className="p-1.5 hover:bg-white hover:shadow-sm rounded-lg transition-all text-slate-500 hover:text-primary"
+                      title="Previous Year"
+                    >
+                       <FiChevronLeft className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={() => setMonthOffset(prev => Math.max(0, prev - 1))}
+                      disabled={monthOffset === 0}
+                      className={`p-1.5 rounded-lg transition-all ${monthOffset === 0 ? 'text-slate-200 cursor-not-allowed' : 'hover:bg-white hover:shadow-sm text-slate-500 hover:text-primary'}`}
+                      title="Next Year"
+                    >
+                       <FiChevronRight className="w-5 h-5" />
+                    </button>
+                 </div>
+                 <FiTrendingUp className="text-emerald-500 w-8 h-8" />
+              </div>
            </div>
            
-           <div className="h-64 mt-4">
+           <div className={`h-64 mt-4 relative transition-opacity duration-300 ${chartLoading ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
              <RevenueLineChart data={statsData?.monthlyRevenue || []} />
+             {chartLoading && (
+               <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-8 h-8 border-3 border-primary/20 border-t-primary rounded-full animate-spin" />
+               </div>
+             )}
            </div>
         </div>
 

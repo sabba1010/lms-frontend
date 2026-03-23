@@ -112,7 +112,7 @@ const AdminAnalytics = () => {
            <div className="flex items-end justify-between h-64 gap-3 sm:gap-6 px-2 sm:px-4">
               {statsData?.monthlyRevenue?.map((data, idx) => {
                  const maxRev = Math.max(...statsData.monthlyRevenue.map(m => m.revenue), 1);
-                 const heightPercent = Math.max((data.revenue / maxRev) * 100, 5); // Min 5% for visibility
+                 const heightPercent = Math.max((data.revenue / maxRev) * 100, 5); 
                  const isLatest = idx === statsData.monthlyRevenue.length - 1;
                  
                  return (
@@ -120,6 +120,7 @@ const AdminAnalytics = () => {
                      key={idx} 
                      height={`${heightPercent}%`} 
                      label={data.month} 
+                     value={`$${(data.revenue || 0).toLocaleString()}`}
                      active={isLatest} 
                    />
                  );
@@ -213,9 +214,15 @@ const MetricCard = ({ label, value, icon, trend, color }) => (
   </div>
 );
 
-const BigBar = ({ height, label, active = false }) => (
+const BigBar = ({ height, label, value, active = false }) => (
   <div className="flex-1 h-full flex flex-col items-center gap-4 group">
      <div className="w-full relative flex-1 flex flex-col justify-end min-h-[1px]">
+        {/* Value Tooltip/Label */}
+        <div className={`absolute -top-8 left-1/2 -translate-x-1/2 bg-dark text-white text-[10px] font-black px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-10 whitespace-nowrap mb-1 ${active ? 'opacity-100 -top-10 scale-110 !bg-primary' : ''}`}>
+           {value}
+           <div className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 ${active ? 'bg-primary' : 'bg-dark'}`}></div>
+        </div>
+
         <div 
           className={`w-full rounded-2xl transition-all duration-700 relative overflow-hidden ${active ? 'bg-primary shadow-lg shadow-primary/30' : 'bg-slate-100 hover:bg-slate-200'}`}
           style={{ height: height || '0%' }}

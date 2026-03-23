@@ -108,6 +108,24 @@ const AdminAnalytics = () => {
         />
       </div>
 
+      {/* Role Breakdown Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <MetricCard 
+          label="Company Enrollments" 
+          value={statsData?.companyEnrollments || '0'} 
+          icon={<FiUsers />} 
+          trend="Total" 
+          color="bg-indigo-500" 
+        />
+        <MetricCard 
+          label="Individual Enrollments" 
+          value={statsData?.studentEnrollments || '0'} 
+          icon={<FiBookOpen />} 
+          trend="Total" 
+          color="bg-rose-500" 
+        />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Revenue Line Chart */}
         <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm lg:col-span-2 relative overflow-hidden">

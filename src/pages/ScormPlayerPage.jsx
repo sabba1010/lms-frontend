@@ -65,27 +65,48 @@ const ScormPlayerPage = () => {
         setEntryPoint(scormData.entryPoint);
 
         // SCORM API Implementation
-        const onStatusSet = (status) => {
-          const lowerStatus = status.toLowerCase();
+        const onStatusSet = async (status, progressValue = null) => {
+          console.log(`SCORM Status Change: ${status}${progressValue !== null ? ` (Progress: ${progressValue}%)` : ''}`);
+          
+          const lowerStatus = status?.toLowerCase() || '';
           if (lowerStatus === 'completed' || lowerStatus === 'passed') {
             handleCompletion();
+          } else if (progressValue !== null) {
+            // Update incremental progress
+            try {
+              console.log(`Sending incremental progress update: ${progressValue}%`);
+              await fetch('/api/payments/progress', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id, courseId, progress: progressValue })
+              });
+            } catch (err) {
+              console.error('Error updating incremental progress:', err);
+            }
           }
         };
 
         // SCORM 1.2
         window.API = {
-          LMSInitialize: () => 'true',
-          LMSFinish: () => 'true',
+          LMSInitialize: () => { console.log('SCORM 1.2 Initialized'); return 'true'; },
+          LMSFinish: () => { console.log('SCORM 1.2 Finished'); return 'true'; },
           LMSGetValue: (element) => {
+            console.log(`SCORM 1.2 GetValue: ${element}`);
             if (element === 'cmi.core.lesson_status') return 'incomplete';
+            if (element === 'cmi.core.score.raw') return '0';
             return '';
           },
           LMSSetValue: (element, value) => {
-            console.log(`SCORM 1.2: ${element} -> ${value}`);
-            if (element === 'cmi.core.lesson_status') onStatusSet(value);
+            console.log(`SCORM 1.2 SetValue: ${element} -> ${value}`);
+            if (element === 'cmi.core.lesson_status') {
+               onStatusSet(value);
+            } else if (element === 'cmi.core.score.raw') {
+               const score = parseInt(value);
+               if (!isNaN(score)) onStatusSet('incomplete', score);
+            }
             return 'true';
           },
-          LMSCommit: () => 'true',
+          LMSCommit: (v) => { console.log('SCORM 1.2 Commit'); return 'true'; },
           LMSGetLastError: () => '0',
           LMSGetErrorString: () => 'No error',
           LMSGetDiagnostic: () => 'No error',
@@ -93,18 +114,28 @@ const ScormPlayerPage = () => {
 
         // SCORM 2004
         window.API_1484_11 = {
-          Initialize: () => 'true',
-          Terminate: () => 'true',
+          Initialize: () => { console.log('SCORM 2004 Initialized'); return 'true'; },
+          Terminate: () => { console.log('SCORM 2004 Terminated'); return 'true'; },
           GetValue: (element) => {
+            console.log(`SCORM 2004 GetValue: ${element}`);
             if (element === 'cmi.completion_status') return 'incomplete';
+            if (element === 'cmi.score.raw') return '0';
             return '';
           },
           SetValue: (element, value) => {
-            console.log(`SCORM 2004: ${element} -> ${value}`);
-            if (element === 'cmi.completion_status' || element === 'cmi.success_status') onStatusSet(value);
+            console.log(`SCORM 2004 SetValue: ${element} -> ${value}`);
+            if (element === 'cmi.completion_status' || element === 'cmi.success_status') {
+              onStatusSet(value);
+            } else if (element === 'cmi.progress_measure') {
+              const progress = Math.round(parseFloat(value) * 100);
+              onStatusSet('incomplete', progress);
+            } else if (element === 'cmi.score.raw') {
+              const score = parseInt(value);
+              if (!isNaN(score)) onStatusSet('incomplete', score);
+            }
             return 'true';
           },
-          Commit: () => 'true',
+          Commit: (v) => { console.log('SCORM 2004 Commit'); return 'true'; },
           GetLastError: () => '0',
           GetErrorString: () => 'No error',
           GetDiagnostic: () => 'No error',

@@ -314,82 +314,140 @@ const ManageUsers = () => {
 
               {/* Stats Bar */}
               <div className="bg-slate-50 rounded-2xl p-4 flex items-center justify-around border border-slate-100">
-                <div className="text-center">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Enrolled</p>
-                  <p className="text-xl font-black text-primary">{selectedUser.enrolledCourses?.length || 0}</p>
-                </div>
-                <div className="w-px h-8 bg-slate-200" />
-                <div className="text-center">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Completed</p>
-                  <p className="text-xl font-black text-green-600">
-                    {selectedUser.enrolledCourses?.filter(c => c.status === 'completed').length || 0}
-                  </p>
-                </div>
+                {selectedUser.role === 'company' ? (
+                  <>
+                    <div className="text-center">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Students Managed</p>
+                      <p className="text-xl font-black text-[#59B1C9]">
+                        {userList.filter(u => u.role === 'student' && (u.companyId?._id || u.companyId) === (selectedUser._id || selectedUser.id)).length}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-center">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Enrolled</p>
+                      <p className="text-xl font-black text-[#59B1C9]">{selectedUser.enrolledCourses?.length || 0}</p>
+                    </div>
+                    <div className="w-px h-8 bg-slate-200" />
+                    <div className="text-center">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Completed</p>
+                      <p className="text-xl font-black text-green-600">
+                        {selectedUser.enrolledCourses?.filter(c => c.status === 'completed').length || 0}
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
 
-              {/* Enrolled Courses */}
+              {/* Dynamic Section: Courses for Students or Students for Companies */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-black text-dark uppercase tracking-wider flex items-center gap-2">
-                    Enrolled Courses
-                    <span className="bg-slate-100 px-2 py-0.5 rounded-full text-[10px] font-black text-slate-500">
-                      {selectedUser.enrolledCourses?.length || 0}
-                    </span>
-                  </h3>
+                  {selectedUser.role === 'company' ? (
+                    <h3 className="text-sm font-black text-dark uppercase tracking-wider flex items-center gap-2">
+                      Company Students
+                      <span className="bg-slate-100 px-2 py-0.5 rounded-full text-[10px] font-black text-slate-500">
+                        {userList.filter(u => u.role === 'student' && (u.companyId?._id || u.companyId) === (selectedUser._id || selectedUser.id)).length}
+                      </span>
+                    </h3>
+                  ) : (
+                    <h3 className="text-sm font-black text-dark uppercase tracking-wider flex items-center gap-2">
+                      Enrolled Courses
+                      <span className="bg-slate-100 px-2 py-0.5 rounded-full text-[10px] font-black text-slate-500">
+                        {selectedUser.enrolledCourses?.length || 0}
+                      </span>
+                    </h3>
+                  )}
                 </div>
 
-                {selectedUser.enrolledCourses && selectedUser.enrolledCourses.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-3">
-                    {selectedUser.enrolledCourses.map((enrollment, idx) => (
-                      <div key={idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:border-primary/20 transition-all">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-xl bg-white border border-slate-100 overflow-hidden shrink-0 shadow-sm">
-                            <img
-                              src={enrollment.courseId?.image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=100&q=80'}
-                              alt="Course"
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-bold text-dark truncate">
-                              {enrollment.courseId?.title || 'Unknown Course'}
-                            </h4>
-                            <div className="flex items-center gap-2 mt-0.5 text-[10px] font-medium text-slate-400">
-                              <FiCalendar className="w-3 h-3" />
-                              Enrolled: {enrollment.enrolledAt ? new Date(enrollment.enrolledAt).toLocaleDateString('en-GB', {
-                                day: '2-digit', month: 'short', year: 'numeric'
-                              }) : 'N/A'}
-                            </div>
-                            <div className="flex items-center gap-3 mt-1.5">
-                              <div className="flex-1 h-1.5 bg-white rounded-full overflow-hidden border border-slate-100">
-                                <div
-                                  className="h-full bg-primary rounded-full transition-all duration-1000"
-                                  style={{ width: `${enrollment.progress || 0}%` }}
+                {selectedUser.role === 'company' ? (
+                  // Student List for Companies
+                  userList.filter(u => u.role === 'student' && (u.companyId?._id || u.companyId) === (selectedUser._id || selectedUser.id)).length > 0 ? (
+                    <div className="grid grid-cols-1 gap-3">
+                      {userList
+                        .filter(u => u.role === 'student' && (u.companyId?._id || u.companyId) === (selectedUser._id || selectedUser.id))
+                        .map((student) => (
+                          <div key={student._id || student.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:border-primary/20 transition-all">
+                            <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center overflow-hidden shrink-0 border border-slate-100">
+                                <img
+                                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${student.name}`}
+                                  alt={student.name}
+                                  className="w-full h-full"
                                 />
                               </div>
-                              <span className="text-[11px] font-black text-primary w-8">{enrollment.progress || 0}%</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold text-dark truncate">{student.name}</p>
+                                <p className="text-[10px] font-medium text-slate-500">@{student.username} • {student.email}</p>
+                              </div>
+                              <div className="shrink-0 text-[10px] font-black text-slate-400 bg-white px-2 py-1 rounded-lg border border-slate-100">
+                                {student.enrolledCourses?.length || 0} Course(s)
+                              </div>
                             </div>
                           </div>
-                          <div className="shrink-0">
-                            {enrollment.status === 'completed' ? (
-                              <span className="flex items-center gap-1 text-green-600 bg-green-100 px-2 py-1 rounded-lg text-[10px] font-black uppercase">
-                                <FiCheckCircle className="w-3 h-3" /> Done
-                              </span>
-                            ) : (
-                              <span className="flex items-center gap-1 text-amber-600 bg-amber-100 px-2 py-1 rounded-lg text-[10px] font-black uppercase">
-                                <FiClock className="w-3 h-3" /> In Progress
-                              </span>
-                            )}
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-10 bg-slate-50 rounded-3xl border border-dashed border-slate-200 text-slate-400">
+                      <p className="text-xs font-bold uppercase tracking-widest mb-1">No Students Linked</p>
+                      <p className="text-[11px]">No students have been assigned to this company yet.</p>
+                    </div>
+                  )
+                ) : (
+                  // Course list for students (current behavior)
+                  selectedUser.enrolledCourses && selectedUser.enrolledCourses.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-3">
+                      {selectedUser.enrolledCourses.map((enrollment, idx) => (
+                        <div key={idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:border-primary/20 transition-all">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-white border border-slate-100 overflow-hidden shrink-0 shadow-sm">
+                              <img
+                                src={enrollment.courseId?.image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=100&q=80'}
+                                alt="Course"
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-bold text-dark truncate">
+                                {enrollment.courseId?.title || 'Unknown Course'}
+                              </h4>
+                              <div className="flex items-center gap-2 mt-0.5 text-[10px] font-medium text-slate-400">
+                                <FiCalendar className="w-3 h-3" />
+                                Enrolled: {enrollment.enrolledAt ? new Date(enrollment.enrolledAt).toLocaleDateString('en-GB', {
+                                  day: '2-digit', month: 'short', year: 'numeric'
+                                }) : 'N/A'}
+                              </div>
+                              <div className="flex items-center gap-3 mt-1.5">
+                                <div className="flex-1 h-1.5 bg-white rounded-full overflow-hidden border border-slate-100">
+                                  <div
+                                    className="h-full bg-primary rounded-full transition-all duration-1000"
+                                    style={{ width: `${enrollment.progress || 0}%` }}
+                                  />
+                                </div>
+                                <span className="text-[11px] font-black text-primary w-8">{enrollment.progress || 0}%</span>
+                              </div>
+                            </div>
+                            <div className="shrink-0">
+                              {enrollment.status === 'completed' ? (
+                                <span className="flex items-center gap-1 text-green-600 bg-green-100 px-2 py-1 rounded-lg text-[10px] font-black uppercase">
+                                  <FiCheckCircle className="w-3 h-3" /> Done
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-1 text-amber-600 bg-amber-100 px-2 py-1 rounded-lg text-[10px] font-black uppercase">
+                                  <FiClock className="w-3 h-3" /> In Progress
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-10 bg-slate-50 rounded-3xl border border-dashed border-slate-200 text-slate-400">
-                    <p className="text-xs font-bold uppercase tracking-widest mb-1">No Courses Found</p>
-                    <p className="text-[11px]">This user hasn't enrolled in any courses yet.</p>
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-10 bg-slate-50 rounded-3xl border border-dashed border-slate-200 text-slate-400">
+                      <p className="text-xs font-bold uppercase tracking-widest mb-1">No Courses Found</p>
+                      <p className="text-[11px]">This user hasn't enrolled in any courses yet.</p>
+                    </div>
+                  )
                 )}
               </div>
             </div>

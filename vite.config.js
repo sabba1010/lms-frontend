@@ -7,11 +7,11 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://lms-backend-rosy-two.vercel.app',
+        target: 'https://lms-backend-txu9.onrender.com',
         changeOrigin: true,
       },
       '/scorm/': {
-        target: 'https://lms-backend-rosy-two.vercel.app',
+        target: 'https://lms-backend-txu9.onrender.com',
         changeOrigin: true,
       }
     }

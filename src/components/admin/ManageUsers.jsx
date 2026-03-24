@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiSearch, FiTrash2, FiFilter, FiUsers, FiUser, FiBriefcase } from 'react-icons/fi';
+import { FiSearch, FiTrash2, FiFilter, FiUsers, FiUser, FiBriefcase, FiEye, FiX, FiClock, FiCheckCircle, FiCalendar } from 'react-icons/fi';
 import Swal from 'sweetalert2';
 
 const API_URL = '/api/users';
@@ -9,6 +9,8 @@ const ManageUsers = () => {
   const [roleFilter, setRoleFilter] = useState('all'); // 'all' | 'student' | 'company'
   const [userList, setUserList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -60,6 +62,11 @@ const ManageUsers = () => {
         console.error('Error deleting user:', error);
       }
     }
+  };
+
+  const handleViewUser = (user) => {
+    setSelectedUser(user);
+    setIsViewModalOpen(true);
   };
 
   const filteredUsers = userList.filter((user) => {
@@ -217,6 +224,13 @@ const ManageUsers = () => {
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
+                          onClick={() => handleViewUser(user)}
+                          className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                          title="View User Details"
+                        >
+                          <FiEye className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => handleDeleteUser(user._id || user.id, user.name)}
                           className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                           title="Delete User"
@@ -247,6 +261,151 @@ const ManageUsers = () => {
           </p>
         </div>
       </div>
+
+      {/* View User Modal */}
+      {isViewModalOpen && selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
+                  <img
+                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedUser.name}`}
+                    alt={selectedUser.name}
+                    className="w-full h-full"
+                  />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-dark tracking-tight">{selectedUser.name}</h2>
+                  <p className="text-sm text-slate-500 font-medium">@{selectedUser.username} • {selectedUser.email}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsViewModalOpen(false)}
+                className="p-2 hover:bg-white rounded-full transition-colors shadow-sm"
+              >
+                <FiX className="w-6 h-6 text-slate-400" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 space-y-8">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Account Type</p>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-0.5 rounded-md text-xs font-bold capitalize ${
+                      selectedUser.role === 'company' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {selectedUser.role}
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Joined On</p>
+                  <div className="flex items-center gap-1.5 text-sm font-bold text-dark">
+                    <FiCalendar className="w-3.5 h-3.5 text-slate-400" />
+                    {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString('en-GB', {
+                      day: '2-digit', month: 'long', year: 'numeric'
+                    }) : 'N/A'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats Bar */}
+              <div className="bg-slate-50 rounded-2xl p-4 flex items-center justify-around border border-slate-100">
+                <div className="text-center">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Enrolled</p>
+                  <p className="text-xl font-black text-primary">{selectedUser.enrolledCourses?.length || 0}</p>
+                </div>
+                <div className="w-px h-8 bg-slate-200" />
+                <div className="text-center">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Completed</p>
+                  <p className="text-xl font-black text-green-600">
+                    {selectedUser.enrolledCourses?.filter(c => c.status === 'completed').length || 0}
+                  </p>
+                </div>
+              </div>
+
+              {/* Enrolled Courses */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black text-dark uppercase tracking-wider flex items-center gap-2">
+                    Enrolled Courses
+                    <span className="bg-slate-100 px-2 py-0.5 rounded-full text-[10px] font-black text-slate-500">
+                      {selectedUser.enrolledCourses?.length || 0}
+                    </span>
+                  </h3>
+                </div>
+
+                {selectedUser.enrolledCourses && selectedUser.enrolledCourses.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-3">
+                    {selectedUser.enrolledCourses.map((enrollment, idx) => (
+                      <div key={idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:border-primary/20 transition-all">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-xl bg-white border border-slate-100 overflow-hidden shrink-0 shadow-sm">
+                            <img
+                              src={enrollment.courseId?.image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=100&q=80'}
+                              alt="Course"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-bold text-dark truncate">
+                              {enrollment.courseId?.title || 'Unknown Course'}
+                            </h4>
+                            <div className="flex items-center gap-2 mt-0.5 text-[10px] font-medium text-slate-400">
+                              <FiCalendar className="w-3 h-3" />
+                              Enrolled: {enrollment.enrolledAt ? new Date(enrollment.enrolledAt).toLocaleDateString('en-GB', {
+                                day: '2-digit', month: 'short', year: 'numeric'
+                              }) : 'N/A'}
+                            </div>
+                            <div className="flex items-center gap-3 mt-1.5">
+                              <div className="flex-1 h-1.5 bg-white rounded-full overflow-hidden border border-slate-100">
+                                <div
+                                  className="h-full bg-primary rounded-full transition-all duration-1000"
+                                  style={{ width: `${enrollment.progress || 0}%` }}
+                                />
+                              </div>
+                              <span className="text-[11px] font-black text-primary w-8">{enrollment.progress || 0}%</span>
+                            </div>
+                          </div>
+                          <div className="shrink-0">
+                            {enrollment.status === 'completed' ? (
+                              <span className="flex items-center gap-1 text-green-600 bg-green-100 px-2 py-1 rounded-lg text-[10px] font-black uppercase">
+                                <FiCheckCircle className="w-3 h-3" /> Done
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1 text-amber-600 bg-amber-100 px-2 py-1 rounded-lg text-[10px] font-black uppercase">
+                                <FiClock className="w-3 h-3" /> In Progress
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-10 bg-slate-50 rounded-3xl border border-dashed border-slate-200 text-slate-400">
+                    <p className="text-xs font-bold uppercase tracking-widest mb-1">No Courses Found</p>
+                    <p className="text-[11px]">This user hasn't enrolled in any courses yet.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 bg-slate-50/50 border-t border-slate-100 flex justify-end">
+              <button
+                onClick={() => setIsViewModalOpen(false)}
+                className="px-8 py-3 bg-dark text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-dark/90 transition-all shadow-lg shadow-dark/20"
+              >
+                Close Details
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

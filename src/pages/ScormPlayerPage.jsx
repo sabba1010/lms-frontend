@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiMaximize2, FiMinimize2, FiLoader } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
@@ -89,110 +89,127 @@ const ScormPlayerPage = () => {
     syncToBackend();
   };
 
-  // --- TRIPLE-LOCK SCORM ENGINE (1.2) ---
-  const scorm12API = {
-    LMSInitialize: (arg) => { 
-      addLog('🔌 SCORM 1.2 Handshake'); 
-      const hasData = (cmiRef.current['cmi.suspend_data'] || cmiRef.current['cmi.core.lesson_location']);
-      cmiRef.current['cmi.core.entry'] = hasData ? 'resume' : 'ab-initio';
-      return 'true'; 
-    },
-    LMSFinish: (arg) => { syncToBackend(); addLog('🔌 SCORM 1.2 Finished'); return 'true'; },
-    LMSGetValue: (element) => {
-      if (element === 'cmi.core.entry') return cmiRef.current['cmi.core.entry'] || 'ab-initio';
-      if (element === 'cmi.core.credit') return 'credit';
-      if (element === 'cmi.core.lesson_mode') return 'normal';
-      if (element === 'cmi.core.student_id') return user?.id?.toString() || 'guest';
-      if (element === 'cmi.core.student_name') return user?.name || 'Guest Student';
-      return cmiRef.current[element] || '';
-    },
-    LMSSetValue: (element, value) => {
-      addLog(`📝 1.2 Set: ${element}`);
-      cmiRef.current[element] = value;
-      if (element === 'cmi.core.lesson_status') onStatusSet(value);
-      else if (element === 'cmi.core.score.raw') {
-        const val = Math.round(parseFloat(value));
-        if (!isNaN(val)) onStatusSet('incomplete', val);
-      } else syncToBackend();
-      return 'true';
-    },
-    LMSCommit: (arg) => { syncToBackend(); return 'true'; },
-    LMSGetLastError: () => '0',
-    LMSGetErrorString: () => 'No error',
-    LMSGetDiagnostic: () => 'No error',
-  };
+  // --- UNIVERSAL SCORM ENGINE ---
+  const scormAPI = useMemo(() => {
+    const api12 = {
+      LMSInitialize: (arg) => { 
+        addLog('🔌 SCORM 1.2 Handshake'); 
+        const hasData = (cmiRef.current['cmi.suspend_data'] || cmiRef.current['cmi.core.lesson_location']);
+        cmiRef.current['cmi.core.entry'] = hasData ? 'resume' : 'ab-initio';
+        return 'true'; 
+      },
+      LMSFinish: (arg) => { syncToBackend(); addLog('🔌 SCORM 1.2 Finished'); return 'true'; },
+      LMSGetValue: (element) => {
+        if (element === 'cmi.core.entry') return cmiRef.current['cmi.core.entry'] || 'ab-initio';
+        if (element === 'cmi.core.credit') return 'credit';
+        if (element === 'cmi.core.lesson_mode') return 'normal';
+        if (element === 'cmi.core.student_id') return user?.id?.toString() || 'guest';
+        if (element === 'cmi.core.student_name') return user?.name || 'Guest Student';
+        return cmiRef.current[element] || '';
+      },
+      LMSSetValue: (element, value) => {
+        addLog(`📝 1.2 Set: ${element}`);
+        cmiRef.current[element] = value;
+        if (element === 'cmi.core.lesson_status') onStatusSet(value);
+        else if (element === 'cmi.core.score.raw') {
+          const val = Math.round(parseFloat(value));
+          if (!isNaN(val)) onStatusSet('incomplete', val);
+        } else syncToBackend();
+        return 'true';
+      },
+      LMSCommit: (arg) => { syncToBackend(); return 'true'; },
+      LMSGetLastError: () => '0',
+      LMSGetErrorString: (errCode) => 'No error',
+      LMSGetDiagnostic: (errCode) => 'No error',
+    };
 
-  // --- TRIPLE-LOCK SCORM ENGINE (2004) ---
-  const scorm2004API = {
-    Initialize: (arg) => { 
-      addLog('🔌 SCORM 2004 Handshake'); 
-      const hasData = (cmiRef.current['cmi.suspend_data'] || cmiRef.current['cmi.location']);
-      cmiRef.current['cmi.entry'] = hasData ? 'resume' : 'ab-initio';
-      return 'true'; 
-    },
-    Terminate: (arg) => { syncToBackend(); addLog('🔌 SCORM 2004 Terminated'); return 'true'; },
-    GetValue: (element) => {
-      if (element === 'cmi.entry') return cmiRef.current['cmi.entry'] || 'ab-initio';
-      if (element === 'cmi.credit') return 'credit';
-      if (element === 'cmi.mode') return 'normal';
-      if (element === 'cmi.learner_id') return user?.id?.toString() || 'guest';
-      if (element === 'cmi.learner_name') return user?.name || 'Guest Student';
-      return cmiRef.current[element] || '';
-    },
-    SetValue: (element, value) => {
-      addLog(`📝 2004 Set: ${element}`);
-      cmiRef.current[element] = value;
-      if (element === 'cmi.completion_status' || element === 'cmi.success_status') onStatusSet(value);
-      else if (element === 'cmi.progress_measure' || element === 'cmi.score.scaled') {
-        const val = Math.round(parseFloat(value) * 100);
-        if (!isNaN(val)) onStatusSet('incomplete', val);
-      } else if (element === 'cmi.score.raw') {
-        const val = Math.round(parseFloat(value));
-        if (!isNaN(val)) onStatusSet('incomplete', val);
-      } else syncToBackend();
-      return 'true';
-    },
-    Commit: (arg) => { syncToBackend(); return 'true'; },
-    GetLastError: () => '0',
-    GetErrorString: () => 'No error',
-    GetDiagnostic: () => 'No error',
-  };
+    const api2004 = {
+      Initialize: (arg) => { 
+        addLog('🔌 SCORM 2004 Handshake'); 
+        const hasData = (cmiRef.current['cmi.suspend_data'] || cmiRef.current['cmi.location']);
+        cmiRef.current['cmi.entry'] = hasData ? 'resume' : 'ab-initio';
+        return 'true'; 
+      },
+      Terminate: (arg) => { syncToBackend(); addLog('🔌 SCORM 2004 Terminated'); return 'true'; },
+      GetValue: (element) => {
+        if (element === 'cmi.entry') return cmiRef.current['cmi.entry'] || 'ab-initio';
+        if (element === 'cmi.credit') return 'credit';
+        if (element === 'cmi.mode') return 'normal';
+        if (element === 'cmi.learner_id') return user?.id?.toString() || 'guest';
+        if (element === 'cmi.learner_name') return user?.name || 'Guest Student';
+        return cmiRef.current[element] || '';
+      },
+      SetValue: (element, value) => {
+        addLog(`📝 2004 Set: ${element}`);
+        cmiRef.current[element] = value;
+        if (element === 'cmi.completion_status' || element === 'cmi.success_status') onStatusSet(value);
+        else if (element === 'cmi.progress_measure' || element === 'cmi.score.scaled') {
+          const val = Math.round(parseFloat(value) * 100);
+          if (!isNaN(val)) onStatusSet('incomplete', val);
+        } else if (element === 'cmi.score.raw') {
+          const val = Math.round(parseFloat(value));
+          if (!isNaN(val)) onStatusSet('incomplete', val);
+        } else syncToBackend();
+        return 'true';
+      },
+      Commit: (arg) => { syncToBackend(); return 'true'; },
+      GetLastError: () => '0',
+      GetErrorString: (errCode) => 'No error',
+      GetDiagnostic: (errCode) => 'No error',
+    };
+
+    return { api12, api2004 };
+  }, [user, courseId]);
 
   // 1. SYNC LOCK: Expose APIs BEFORE anything else
   useLayoutEffect(() => {
     const bindAPIs = (win) => {
+      if (!win) return;
       try {
-        win.API = scorm12API;
-        win.API_1484_11 = scorm2004API;
-        win.findAPI = (w) => (w.API || w.API_1484_11 ? w : null);
+        // SCORM 1.2
+        win.API = scormAPI.api12;
+        win.API_Adapter = scormAPI.api12;
+        
+        // SCORM 2004
+        win.API_1484_11 = scormAPI.api2004;
+        
+        // Helper Shims
+        win.findAPI = (w) => (w.API || w.API_Adapter || w.API_1484_11 ? w : null);
+        win.GetAPI = () => (scormAPI.api12);
+        win.IsLmsPresent = () => true;
+        
+        // Articulate/Rise requirements
         win.name = "LMSFrame";
       } catch (e) {}
     };
 
+    // Bind to current window and potential parents/openers
     bindAPIs(window);
-    let curr = window;
-    for (let i = 0; i < 5; i++) {
-        if (curr.parent && curr.parent !== curr) {
-            curr = curr.parent;
-            bindAPIs(curr);
-        } else break;
-    }
-    if (window.top) bindAPIs(window.top);
-    if (window.opener) bindAPIs(window.opener);
+    
+    // Explicitly bind to standard global search points
+    try {
+      if (window.parent && window.parent !== window) bindAPIs(window.parent);
+      if (window.top && window.top !== window) bindAPIs(window.top);
+      if (window.opener) bindAPIs(window.opener);
+    } catch (e) {}
 
     return () => {
-      delete window.API; delete window.API_1484_11; delete window.findAPI;
+      try {
+        delete window.API; delete window.API_Adapter; delete window.API_1484_11; delete window.findAPI;
+      } catch (e) {}
     };
-  }, []);
+  }, [scormAPI]);
 
   // 2. IFRAME LOCK: Injected explicitly upon render AND load
   const injectToIframe = () => {
     try {
       const win = iframeRef.current?.contentWindow;
       if (win) {
-        win.API = scorm12API;
-        win.API_1484_11 = scorm2004API;
-        win.findAPI = (w) => (w.API || w.API_1484_11 ? w : null);
+        win.API = scormAPI.api12;
+        win.API_Adapter = scormAPI.api12;
+        win.API_1484_11 = scormAPI.api2004;
+        win.findAPI = (w) => (w.API || w.API_Adapter || w.API_1484_11 ? w : null);
+        win.IsLmsPresent = () => true;
         console.log('🚀 LMS API Injected to Content Window');
       }
     } catch (e) {}

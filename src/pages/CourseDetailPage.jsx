@@ -189,10 +189,7 @@ const CourseDetailPage = () => {
 
             {course.scormFileName && (
               <div className="pt-2">
-                <button className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-white font-black text-[18px] rounded-xl flex items-center justify-center gap-2 transform hover:scale-[1.02] transition-all shadow-lg shadow-amber-200">
-                  <span className="w-3 h-3 bg-white rounded-full animate-pulse"></span>
-                  Launch SCORM Course
-                </button>
+            
                 <p className="text-[10px] text-center text-slate-400 mt-2 font-bold uppercase tracking-widest italic">File: {course.scormFileName}</p>
               </div>
             )}

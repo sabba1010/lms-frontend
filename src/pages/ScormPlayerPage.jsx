@@ -32,7 +32,25 @@ const ScormPlayerPage = () => {
     'cmi.entry': 'ab-initio',
     'cmi.success_status': 'unknown',
     'cmi.score.raw': '',
+    'cmi.core.session_time': '0000:00:00.00',
+    'cmi.session_time': 'PT0H0M0S',
   });
+
+  const parseScormTime = (time, version) => {
+    try {
+      if (version === '1.2') {
+        const parts = time.split(':');
+        const h = parseInt(parts[0], 10) || 0;
+        const m = parseInt(parts[1], 10) || 0;
+        const s = parseFloat(parts[2]) || 0;
+        return h * 3600 + m * 60 + s;
+      } else {
+        const match = time.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/);
+        if (!match) return 0;
+        return (parseFloat(match[1] || 0) * 3600) + (parseFloat(match[2] || 0) * 60) + parseFloat(match[3] || 0);
+      }
+    } catch (e) { return 0; }
+  };
 
   const handleCompletion = async () => {
     if (completionSentRef.current || !user?.id) return;
@@ -53,6 +71,12 @@ const ScormPlayerPage = () => {
   const syncToBackend = async () => {
     if (!user?.id) return;
     try {
+      const s12Time = cmiRef.current['cmi.core.session_time'];
+      const s2004Time = cmiRef.current['cmi.session_time'];
+      const sessionSeconds = s12Time !== '0000:00:00.00' 
+        ? parseScormTime(s12Time, '1.2') 
+        : parseScormTime(s2004Time, '2004');
+
       await fetch('/api/payments/suspend', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -61,10 +85,16 @@ const ScormPlayerPage = () => {
           courseId, 
           suspendData: cmiRef.current['cmi.suspend_data'],
           lessonLocation: cmiRef.current['cmi.core.lesson_location'] || cmiRef.current['cmi.location'],
-          status: cmiRef.current['cmi.core.lesson_status'] || cmiRef.current['cmi.completion_status']
+          status: cmiRef.current['cmi.core.lesson_status'] || cmiRef.current['cmi.completion_status'],
+          sessionTime: sessionSeconds
         })
       });
-      // addLog('💾 Position Synced');
+      
+      // Reset session time after sync to avoid double counting
+      if (sessionSeconds > 0) {
+        cmiRef.current['cmi.core.session_time'] = '0000:00:00.00';
+        cmiRef.current['cmi.session_time'] = 'PT0H0M0S';
+      }
     } catch (e) {}
   };
 

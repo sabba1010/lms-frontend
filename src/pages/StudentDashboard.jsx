@@ -78,7 +78,11 @@ const StudentDashboard = () => {
     },
     {
       title: 'Learning Hours',
-      value: String(enrolledCourses.length * 4), // estimated
+      value: (() => {
+        const totalSeconds = enrolledCourses.reduce((acc, c) => acc + (c.totalTime || 0), 0);
+        const hours = totalSeconds / 3600;
+        return hours.toFixed(1);
+      })(),
       icon: <FiClock className="w-6 h-6" />,
       color: 'bg-purple-500',
     },

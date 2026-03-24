@@ -336,6 +336,13 @@ const ManageUsers = () => {
                         {selectedUser.enrolledCourses?.filter(c => c.status === 'completed').length || 0}
                       </p>
                     </div>
+                    <div className="w-px h-8 bg-slate-200" />
+                    <div className="text-center">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Learning Hours</p>
+                      <p className="text-xl font-black text-purple-600">
+                        {((selectedUser.enrolledCourses?.reduce((acc, c) => acc + (c.totalTime || 0), 0) || 0) / 3600).toFixed(1)}
+                      </p>
+                    </div>
                   </>
                 )}
               </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiSearch, FiTrash2, FiFilter, FiUsers, FiUser, FiBriefcase, FiEye, FiX, FiClock, FiCheckCircle, FiCalendar } from 'react-icons/fi';
+import { FiSearch, FiTrash2, FiFilter, FiUsers, FiUser, FiBriefcase, FiEye, FiX, FiClock, FiCheckCircle, FiCalendar, FiLoader } from 'react-icons/fi';
 import Swal from 'sweetalert2';
 
 const API_URL = '/api/users';
@@ -11,6 +11,7 @@ const ManageUsers = () => {
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewLoading, setViewLoading] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -64,10 +65,41 @@ const ManageUsers = () => {
     }
   };
 
-  const handleViewUser = (user) => {
+  const handleViewUser = async (user) => {
     setSelectedUser(user);
     setIsViewModalOpen(true);
+    setViewLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/${user._id || user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSelectedUser(data);
+      }
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+    } finally {
+      setViewLoading(false);
+    }
   };
+
+  const refreshUserData = async () => {
+    if (!selectedUser) return;
+    try {
+      const response = await fetch(`${API_URL}/${selectedUser._id || selectedUser.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSelectedUser(data);
+      }
+    } catch (error) {}
+  };
+
+  useEffect(() => {
+    let interval;
+    if (isViewModalOpen && selectedUser && selectedUser.role === 'student') {
+      interval = setInterval(refreshUserData, 30000); // Auto refresh every 30s
+    }
+    return () => clearInterval(interval);
+  }, [isViewModalOpen, selectedUser]);
 
   const filteredUsers = userList.filter((user) => {
     const matchesSearch =
@@ -168,6 +200,7 @@ const ManageUsers = () => {
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">User</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Username</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Role</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Enrolled/Progress</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Joined</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
                 </tr>
@@ -207,6 +240,34 @@ const ManageUsers = () => {
                         {user.role === 'company' ? <FiBriefcase className="w-3 h-3" /> : <FiUser className="w-3 h-3" />}
                         {user.role === 'company' ? 'Company' : 'Student'}
                       </span>
+                    </td>
+
+                    {/* Progress Column */}
+                    <td className="px-6 py-4">
+                      {user.role === 'student' ? (
+                        <div className="flex flex-col gap-1.5 min-w-[120px]">
+                          <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider">
+                            <span className="text-slate-400">{user.enrolledCourses?.length || 0} Courses</span>
+                            <span className="text-primary">
+                              {user.enrolledCourses?.length > 0 
+                                ? Math.round(user.enrolledCourses.reduce((acc, c) => acc + (c.progress || 0), 0) / user.enrolledCourses.length) 
+                                : 0}%
+                            </span>
+                          </div>
+                          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-50">
+                            <div 
+                              className="h-full bg-primary rounded-full transition-all duration-700"
+                              style={{ 
+                                width: `${user.enrolledCourses?.length > 0 
+                                  ? Math.round(user.enrolledCourses.reduce((acc, c) => acc + (c.progress || 0), 0) / user.enrolledCourses.length) 
+                                  : 0}%` 
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">—</span>
+                      )}
                     </td>
 
                     {/* Joined date from MongoDB */}
@@ -312,7 +373,14 @@ const ManageUsers = () => {
                 </div>
               </div>
 
-              {/* Stats Bar */}
+              {viewLoading ? (
+                <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                  <FiLoader className="w-10 h-10 animate-spin text-primary" />
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Fetching latest progress...</p>
+                </div>
+              ) : (
+                <>
+                  {/* Stats Bar */}
               <div className="bg-slate-50 rounded-2xl p-4 flex items-center justify-around border border-slate-100">
                 {selectedUser.role === 'company' ? (
                   <>
@@ -457,16 +525,32 @@ const ManageUsers = () => {
                   )
                 )}
               </div>
-            </div>
+            </>
+          )}
+        </div>
 
             {/* Modal Footer */}
-            <div className="p-6 bg-slate-50/50 border-t border-slate-100 flex justify-end">
-              <button
-                onClick={() => setIsViewModalOpen(false)}
-                className="px-8 py-3 bg-dark text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-dark/90 transition-all shadow-lg shadow-dark/20"
-              >
-                Close Details
-              </button>
+            <div className="p-6 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                Live Tracking Enabled
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={refreshUserData}
+                  disabled={viewLoading}
+                  className="p-3 bg-white border border-slate-200 text-slate-400 hover:text-primary hover:border-primary/30 rounded-2xl transition-all shadow-sm group"
+                  title="Refresh Data"
+                >
+                  <FiClock className={`w-5 h-5 ${viewLoading ? 'animate-spin' : ''}`} />
+                </button>
+                <button
+                  onClick={() => setIsViewModalOpen(false)}
+                  className="px-8 py-3 bg-dark text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-dark/90 transition-all shadow-lg shadow-dark/20"
+                >
+                  Close Details
+                </button>
+              </div>
             </div>
           </div>
         </div>

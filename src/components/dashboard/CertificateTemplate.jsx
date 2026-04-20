@@ -8,7 +8,7 @@ const CertificateTemplate = ({ certificate, userName }) => {
 
   return (
     <div className="certificate-wrapper bg-[#f5f5f5] p-2 md:p-8 min-h-screen flex items-center justify-center print:bg-white print:p-0">
-      <div className="certificate-container bg-white w-full max-w-[1100px] aspect-[1.414/1] p-16 md:p-24 shadow-2xl flex flex-col items-center text-center relative print:shadow-none print:p-12 print:max-w-none print:w-screen print:h-screen">
+      <div id="certificate-content" className="certificate-container bg-white w-full max-w-[1100px] aspect-[1.414/1] p-16 md:p-24 shadow-2xl flex flex-col items-center text-center relative print:shadow-none print:p-12 print:max-w-none print:w-screen print:h-screen">
         
         {/* 1. Logo */}
         <div className="mb-6">

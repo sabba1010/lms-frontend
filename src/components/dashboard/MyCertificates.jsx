@@ -1,14 +1,59 @@
 import React, { useState } from 'react';
-import { FiAward, FiPrinter, FiX } from 'react-icons/fi';
+import { FiAward, FiPrinter, FiX, FiDownload, FiLoader } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import CertificateTemplate from './CertificateTemplate';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const MyCertificates = ({ certificates }) => {
   const { user } = useAuth();
   const [selectedCert, setSelectedCert] = useState(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownload = async (cert) => {
+    if (!cert) return;
+    
+    // If modal is not open, we need to select it first to render it
+    if (!selectedCert) setSelectedCert(cert);
+    
+    setIsDownloading(true);
+    
+    // Small delay to ensure the DOM is rendered and images are loaded
+    setTimeout(async () => {
+      try {
+        const element = document.getElementById('certificate-content');
+        if (!element) {
+          console.error('Certificate element not found');
+          setIsDownloading(false);
+          return;
+        }
+
+        const canvas = await html2canvas(element, {
+          scale: 2, // High quality
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff'
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+          orientation: 'landscape',
+          unit: 'px',
+          format: [canvas.width, canvas.height]
+        });
+
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        pdf.save(`Certificate-${cert.title.replace(/\s+/g, '-')}.pdf`);
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+      } finally {
+        setIsDownloading(false);
+      }
+    }, 1000);
   };
   if (!certificates || certificates.length === 0) {
     return (
@@ -81,12 +126,11 @@ const MyCertificates = ({ certificates }) => {
                      View Certificate
                   </button>
                   <button 
-                    onClick={() => {
-                        setSelectedCert(cert);
-                        setTimeout(() => window.print(), 500);
-                    }}
-                    className="flex-1 border-2 border-slate-100 text-slate-600 font-bold py-4 rounded-2xl hover:border-primary/20 hover:text-primary transition-all text-sm"
+                    onClick={() => handleDownload(cert)}
+                    disabled={isDownloading}
+                    className="flex-1 border-2 border-slate-100 text-slate-600 font-bold py-4 rounded-2xl hover:border-primary/20 hover:text-primary transition-all text-sm flex items-center justify-center gap-2"
                   >
+                     {isDownloading ? <FiLoader className="animate-spin" /> : <FiDownload />}
                      Download PDF
                   </button>
                </div>
@@ -107,10 +151,18 @@ const MyCertificates = ({ certificates }) => {
               </h3>
               <div className="flex items-center gap-3">
                 <button 
-                  onClick={handlePrint}
-                  className="flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-xl font-bold hover:bg-primary-dark transition-all shadow-lg shadow-primary/20"
+                  onClick={() => handleDownload(selectedCert)}
+                  disabled={isDownloading}
+                  className="flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-xl font-bold hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
                 >
-                  <FiPrinter /> Print / Save PDF
+                  {isDownloading ? <FiLoader className="animate-spin" /> : <FiDownload />}
+                  {isDownloading ? 'Downloading...' : 'Direct Download'}
+                </button>
+                <button 
+                  onClick={handlePrint}
+                  className="flex items-center gap-2 border-2 border-slate-200 text-slate-600 px-6 py-2.5 rounded-xl font-bold hover:bg-slate-50 transition-all"
+                >
+                  <FiPrinter /> Print
                 </button>
                 <button 
                   onClick={() => setSelectedCert(null)}

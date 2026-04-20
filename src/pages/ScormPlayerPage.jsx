@@ -54,18 +54,39 @@ const ScormPlayerPage = () => {
 
   const handleCompletion = async () => {
     if (completionSentRef.current || !user?.id) return;
+    completionSentRef.current = true;
+    addLog('🚀 Completing Course (100%)...');
+    
+    // Force progress and status in CMI store
+    cmiRef.current['_last_progress'] = 100;
+    cmiRef.current['cmi.core.lesson_status'] = 'completed';
+    cmiRef.current['cmi.completion_status'] = 'completed';
+    
+    // 1. Instantly update the dashboard UI (optimistic — no wait needed)
+    updateCourseProgress(courseId, 100, 'completed');
+    
+    // 2. Atomically save to backend — single call, no race condition
     try {
-      completionSentRef.current = true;
-      addLog('🚀 Reporting Completion (100%)...');
-      cmiRef.current['cmi.core.lesson_status'] = 'completed';
-      cmiRef.current['cmi.completion_status'] = 'completed';
-      const res = await fetch(`${SCORM_API}/complete`, {
-        method: 'POST',
+      const res = await fetch('/api/payments/suspend', {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, courseId })
+        body: JSON.stringify({
+          userId: user.id,
+          courseId,
+          progress: 100,
+          status: 'completed',
+          suspendData: cmiRef.current['cmi.suspend_data'],
+          lessonLocation: cmiRef.current['cmi.core.lesson_location'] || cmiRef.current['cmi.location'],
+        })
       });
-      if (res.ok) addLog('✅ Completion Saved');
-    } catch (err) { addLog('❌ Completion Error'); }
+      if (res.ok) {
+        addLog('✅ Progress Saved: 100% Complete');
+      } else {
+        addLog('❌ Backend Save Failed');
+      }
+    } catch (err) { 
+      addLog('❌ Network Error — Progress Cached Locally');
+    }
   };
 
   const syncToBackend = async () => {

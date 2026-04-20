@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FiBookOpen,
@@ -9,6 +9,7 @@ import {
 
 // Auth context to get the current logged-in user
 import { useAuth } from '../context/AuthContext';
+import { useCourses } from '../context/CourseContext';
 
 // Import refactored components
 import Sidebar from '../components/dashboard/Sidebar';
@@ -19,43 +20,16 @@ import Schedule from '../components/dashboard/Schedule';
 import MyCertificates from '../components/dashboard/MyCertificates';
 import EditAccount from '../components/dashboard/EditAccount';
 
-const PAYMENTS_API = '/api/payments';
-
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  
+  // Use global course state — updates instantly when player syncs progress
+  const { enrolledCourses, loading: loadingCourses } = useCourses();
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('Overview');
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Real enrolled courses from the backend
-  const [enrolledCourses, setEnrolledCourses] = useState([]);
-  const [loadingCourses, setLoadingCourses] = useState(true);
-
-  const fetchEnrolledCourses = async () => {
-    if (!user?.id) {
-      setLoadingCourses(false);
-      return;
-    }
-    try {
-      setLoadingCourses(true);
-      const res = await fetch(`${PAYMENTS_API}/enrolled/${user.id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setEnrolledCourses(data);
-      }
-    } catch (err) {
-      console.error('Error fetching enrolled courses:', err);
-    } finally {
-      setLoadingCourses(false);
-    }
-  };
-
-  // Fetch real enrolled courses whenever the dashboard loads
-  useEffect(() => {
-    fetchEnrolledCourses();
-  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -72,7 +46,7 @@ const StudentDashboard = () => {
     },
     {
       title: 'Completed Courses',
-      value: String(enrolledCourses.filter((c) => (c.progress || 0) >= 100).length),
+      value: String(enrolledCourses.filter((c) => Math.round(Number(c.progress || 0)) >= 99 || c.status === 'completed').length),
       icon: <FiCheckCircle className="w-6 h-6" />,
       color: 'bg-green-500',
     },

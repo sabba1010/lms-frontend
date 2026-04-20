@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { FiAward, FiPrinter, FiX, FiDownload, FiLoader } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import CertificateTemplate from './CertificateTemplate';
@@ -139,69 +140,64 @@ const MyCertificates = ({ certificates }) => {
         ))}
       </div>
 
-      {/* Certificate Modal */}
-      {selectedCert && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:p-8 overflow-y-auto bg-dark/80 backdrop-blur-md animate-in fade-in duration-300 print:p-0 print:bg-white">
+      {/* Certificate Modal - Rendered via Portal for full-screen coverage */}
+      {selectedCert && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-8 overflow-y-auto bg-[#0a0f18]/90 backdrop-blur-xl animate-in fade-in duration-500 print:p-0 print:bg-white">
           
           {/* Floating Close Button for easier access */}
           <button 
             onClick={() => setSelectedCert(null)}
-            className="fixed top-6 right-6 z-[1001] w-12 h-12 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center backdrop-blur-md border border-white/20 transition-all hover:scale-110 print:hidden"
+            className="fixed top-6 right-6 z-[10000] w-14 h-14 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center backdrop-blur-md border border-white/20 transition-all hover:scale-110 active:scale-95 group print:hidden shadow-2xl"
             title="Close Preview"
           >
-            <FiX className="w-6 h-6" />
+            <FiX className="w-8 h-8 group-hover:rotate-90 transition-transform duration-300" />
           </button>
 
-          <div className="relative w-full max-w-[1200px] bg-white rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 print:shadow-none print:rounded-none">
+          <div className="relative w-full max-w-[1240px] bg-white rounded-[40px] shadow-[0_0_80px_rgba(0,0,0,0.5)] overflow-hidden animate-in zoom-in-95 duration-500 print:shadow-none print:rounded-none">
             
             {/* Modal Header - Non-printable */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-100 print:hidden">
-              <h3 className="text-xl font-bold text-dark flex items-center gap-2">
-                <FiAward className="text-primary" /> Certificate Preview
-              </h3>
+            <div className="flex items-center justify-between p-8 border-b border-slate-100 bg-white/80 backdrop-blur-sm sticky top-0 z-10 print:hidden">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center">
+                  <FiAward className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-dark">Certificate Preview</h3>
+                  <p className="text-sm text-slate-500 font-medium">Official accreditation document</p>
+                </div>
+              </div>
+              
               <div className="flex items-center gap-3">
                 <button 
                   onClick={() => handleDownload(selectedCert)}
                   disabled={isDownloading}
-                  className="flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-xl font-bold hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+                  className="flex items-center gap-3 bg-primary text-white px-8 py-3 rounded-2xl font-bold hover:bg-primary-dark transition-all shadow-xl shadow-primary/25 disabled:opacity-50 active:scale-95"
                 >
-                  {isDownloading ? <FiLoader className="animate-spin" /> : <FiDownload />}
-                  {isDownloading ? 'Downloading...' : 'Direct Download'}
+                  {isDownloading ? <FiLoader className="animate-spin w-5 h-5" /> : <FiDownload className="w-5 h-5" />}
+                  {isDownloading ? 'Generating PDF...' : 'Direct Download'}
                 </button>
                 <button 
                   onClick={handlePrint}
-                  className="flex items-center gap-2 border-2 border-slate-200 text-slate-600 px-6 py-2.5 rounded-xl font-bold hover:bg-slate-50 transition-all"
+                  className="flex items-center gap-2 border-2 border-slate-200 text-slate-600 px-6 py-3 rounded-2xl font-bold hover:bg-slate-50 transition-all active:scale-95"
                 >
-                  <FiPrinter /> Print
+                  <FiPrinter className="w-5 h-5" /> Print
                 </button>
                 <button 
                   onClick={() => setSelectedCert(null)}
-                  className="w-11 h-11 bg-slate-50 text-slate-500 rounded-xl flex items-center justify-center hover:bg-slate-100 hover:text-dark transition-all"
+                  className="w-12 h-12 bg-slate-50 text-slate-500 rounded-2xl flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-all active:scale-95"
                 >
-                  <FiX className="w-5 h-5" />
+                  <FiX className="w-6 h-6" />
                 </button>
               </div>
             </div>
 
-            {/* Modal Content */}
-            <div className="p-8 md:p-12 bg-slate-50 print:bg-white print:p-0">
-              <CertificateTemplate 
-                certificate={selectedCert} 
-                userName={user?.name} 
-              />
-            </div>
-
-            {/* Modal Footer - Non-printable */}
-            <div className="p-6 border-t border-slate-100 flex justify-end print:hidden">
-              <button 
-                onClick={() => setSelectedCert(null)}
-                className="px-8 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-all"
-              >
-                Close Preview
-              </button>
+            {/* Certificate Template Content */}
+            <div className="p-0 md:p-12 bg-slate-50/50 flex justify-center print:bg-white print:p-0">
+               <CertificateTemplate certificate={selectedCert} userName={user?.name} />
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

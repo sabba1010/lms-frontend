@@ -141,7 +141,17 @@ const MyCertificates = ({ certificates }) => {
 
       {/* Certificate Modal */}
       {selectedCert && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:p-8 overflow-y-auto bg-dark/60 backdrop-blur-sm animate-in fade-in duration-300 print:p-0 print:bg-white">
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:p-8 overflow-y-auto bg-dark/80 backdrop-blur-md animate-in fade-in duration-300 print:p-0 print:bg-white">
+          
+          {/* Floating Close Button for easier access */}
+          <button 
+            onClick={() => setSelectedCert(null)}
+            className="fixed top-6 right-6 z-[1001] w-12 h-12 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center backdrop-blur-md border border-white/20 transition-all hover:scale-110 print:hidden"
+            title="Close Preview"
+          >
+            <FiX className="w-6 h-6" />
+          </button>
+
           <div className="relative w-full max-w-[1200px] bg-white rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 print:shadow-none print:rounded-none">
             
             {/* Modal Header - Non-printable */}

@@ -1,7 +1,15 @@
-import React from 'react';
-import { FiAward, FiMoreVertical } from 'react-icons/fi';
+import React, { useState } from 'react';
+import { FiAward, FiPrinter, FiX } from 'react-icons/fi';
+import { useAuth } from '../../context/AuthContext';
+import CertificateTemplate from './CertificateTemplate';
 
 const MyCertificates = ({ certificates }) => {
+  const { user } = useAuth();
+  const [selectedCert, setSelectedCert] = useState(null);
+
+  const handlePrint = () => {
+    window.print();
+  };
   if (!certificates || certificates.length === 0) {
     return (
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -65,18 +73,74 @@ const MyCertificates = ({ certificates }) => {
                  </div>
               </div>
 
-              <div className="flex gap-3">
-                 <button className="flex-1 bg-dark text-white font-bold py-4 rounded-2xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 text-sm">
-                    View Certificate
-                 </button>
-                 <button className="flex-1 border-2 border-slate-100 text-slate-600 font-bold py-4 rounded-2xl hover:border-primary/20 hover:text-primary transition-all text-sm">
-                    Download PDF
-                 </button>
-              </div>
+               <div className="flex gap-3">
+                  <button 
+                    onClick={() => setSelectedCert(cert)}
+                    className="flex-1 bg-dark text-white font-bold py-4 rounded-2xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 text-sm"
+                  >
+                     View Certificate
+                  </button>
+                  <button 
+                    onClick={() => {
+                        setSelectedCert(cert);
+                        setTimeout(() => window.print(), 500);
+                    }}
+                    className="flex-1 border-2 border-slate-100 text-slate-600 font-bold py-4 rounded-2xl hover:border-primary/20 hover:text-primary transition-all text-sm"
+                  >
+                     Download PDF
+                  </button>
+               </div>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Certificate Modal */}
+      {selectedCert && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:p-8 overflow-y-auto bg-dark/60 backdrop-blur-sm animate-in fade-in duration-300 print:p-0 print:bg-white">
+          <div className="relative w-full max-w-5xl bg-white rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 print:shadow-none print:rounded-none">
+            
+            {/* Modal Header - Non-printable */}
+            <div className="flex items-center justify-between p-6 border-b border-slate-100 print:hidden">
+              <h3 className="text-xl font-bold text-dark flex items-center gap-2">
+                <FiAward className="text-primary" /> Certificate Preview
+              </h3>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={handlePrint}
+                  className="flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-xl font-bold hover:bg-primary-dark transition-all shadow-lg shadow-primary/20"
+                >
+                  <FiPrinter /> Print / Save PDF
+                </button>
+                <button 
+                  onClick={() => setSelectedCert(null)}
+                  className="w-11 h-11 bg-slate-50 text-slate-500 rounded-xl flex items-center justify-center hover:bg-slate-100 hover:text-dark transition-all"
+                >
+                  <FiX className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-8 md:p-12 bg-slate-50 print:bg-white print:p-0">
+              <CertificateTemplate 
+                certificate={selectedCert} 
+                userName={user?.name} 
+              />
+            </div>
+
+            {/* Modal Footer - Non-printable */}
+            <div className="p-6 border-t border-slate-100 flex justify-end print:hidden">
+              <button 
+                onClick={() => setSelectedCert(null)}
+                className="px-8 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-all"
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

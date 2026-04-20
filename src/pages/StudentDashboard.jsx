@@ -76,7 +76,7 @@ const StudentDashboard = () => {
       date: course.enrolledAt
         ? new Date(course.enrolledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
         : 'N/A',
-      issuer: 'Lumina Academy',
+      issuer: 'The London Safeguarding Network',
       img: course.image || 'https://images.unsplash.com/photo-1589330694653-ded6df03f754?w=500&auto=format&fit=crop',
     }));
 

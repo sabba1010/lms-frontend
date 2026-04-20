@@ -1,163 +1,231 @@
-import React from 'react';
+import React, { useImperativeHandle, forwardRef } from 'react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import logo from '../../assets/certificatelogo.png';
 
-const CertificateTemplate = ({ certificate, userName }) => {
+const CertificateTemplate = forwardRef(({ certificate, userName }, ref) => {
   if (!certificate) return null;
-
   const { title, date, id, expiryDate } = certificate;
 
+  // EXPORT FUNCTIONS
+  const exportAsPDF = async () => {
+    const element = document.getElementById('certificate-render-area');
+    if (!element) return;
+
+    // WAIT FOR FONTS
+    await document.fonts.ready;
+
+    const canvas = await html2canvas(element, {
+      scale: 3, // High quality scaling
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+      width: 1122,
+      height: 793,
+      windowWidth: 1122,
+      windowHeight: 793
+    });
+
+    const imgData = canvas.toDataURL('image/png', 1.0);
+    
+    const pdf = new jsPDF({
+      orientation: 'landscape',
+      unit: 'px',
+      format: [1122, 793]
+    });
+
+    pdf.addImage(imgData, 'PNG', 0, 0, 1122, 793);
+    pdf.save(`Certificate-${title.replace(/\s+/g, '-')}.pdf`);
+  };
+
+  const exportAsImage = async () => {
+    const element = document.getElementById('certificate-render-area');
+    if (!element) return;
+
+    await document.fonts.ready;
+
+    const canvas = await html2canvas(element, {
+      scale: 3,
+      useCORS: true,
+      width: 1122,
+      height: 793
+    });
+
+    const link = document.createElement('a');
+    link.download = `Certificate-${title.replace(/\s+/g, '-')}.png`;
+    link.href = canvas.toDataURL('image/png', 1.0);
+    link.click();
+  };
+
+  // Expose functions to parent via ref
+  useImperativeHandle(ref, () => ({
+    exportAsPDF,
+    exportAsImage
+  }));
+
   return (
-    <div className="certificate-wrapper bg-[#f5f5f5] p-2 md:p-8 min-h-screen flex items-center justify-center print:bg-white print:p-0">
+    <div className="certificate-outer-wrapper bg-[#f8fafc] p-4 md:p-12 min-h-screen flex items-center justify-center overflow-auto">
+      {/* 
+        This is the capture area. 
+        It has STRICTLY FIXED dimensions to ensure 100% parity.
+      */}
       <div 
-        id="certificate-content" 
-        className="certificate-container bg-white w-full max-w-[1122px] aspect-[1.414/1] p-12 flex flex-col items-center text-center relative print:shadow-none print:p-10 print:max-w-none print:w-screen print:h-screen"
+        id="certificate-render-area" 
+        className="certificate-container bg-white relative shadow-2xl overflow-hidden"
         style={{ 
+          width: '1122px', 
           height: '793px', 
-          justifyContent: 'space-between',
+          boxSizing: 'border-box',
           border: '4px solid #007A7A',
-          position: 'relative'
+          flexShrink: 0
         }}
       >
-        {/* Inner Border Frame */}
-        <div className="absolute inset-2 border-[1.5px] border-[#007A7A] pointer-events-none" />
+        {/* Double Frame Design */}
+        <div 
+          className="absolute border-[1.5px] border-[#007A7A] pointer-events-none" 
+          style={{ 
+            top: '8px', 
+            left: '8px', 
+            right: '8px', 
+            bottom: '8px' 
+          }} 
+        />
         
-        {/* Container for content to ensure it stays within frame */}
-        <div className="relative z-10 w-full h-full flex flex-col items-center justify-between py-6 px-12">
-            {/* Top: Logo & Brand */}
+        {/* Main Content Layout */}
+        <div 
+          className="relative z-10 w-full h-full flex flex-col items-center justify-between"
+          style={{ padding: '60px 80px' }}
+        >
+            {/* 1. Logo & Brand Header */}
             <div className="flex flex-col items-center">
-                <div className="mb-6">
-                    <img src={logo} alt="Logo" className="w-28 h-auto" />
-                </div>
-                <div className="mb-3">
-                    <h2 className="text-base font-medium tracking-[0.25em] text-[#333] uppercase font-sans">
-                        THE LONDON SAFEGUARDING NETWORK
-                    </h2>
-                </div>
-                <div className="mb-0">
-                    <h1 className="text-4xl font-black text-[#007A7A] tracking-normal uppercase font-sans">
-                        CERTIFICATE OF ACHIEVEMENT
-                    </h1>
-                </div>
+                <img 
+                    src={logo} 
+                    alt="Network Logo" 
+                    style={{ width: '100px', height: 'auto', marginBottom: '24px' }} 
+                />
+                <h2 
+                    style={{ 
+                        fontFamily: 'Montserrat, sans-serif',
+                        fontSize: '14px', 
+                        fontWeight: '600',
+                        color: '#333',
+                        letterSpacing: '0.3em',
+                        textTransform: 'uppercase',
+                        marginBottom: '8px'
+                    }}
+                >
+                    The London Safeguarding Network
+                </h2>
+                <h1 
+                    style={{ 
+                        fontFamily: 'Montserrat, sans-serif',
+                        fontSize: '44px', 
+                        fontWeight: '900',
+                        color: '#007A7A',
+                        textTransform: 'uppercase',
+                        margin: 0,
+                        lineHeight: '1.2'
+                    }}
+                >
+                    Certificate of Achievement
+                </h1>
             </div>
 
-            {/* Middle: Certification Details */}
-            <div className="flex flex-col items-center w-full">
-                <div className="mb-3">
-                    <p className="text-lg font-serif italic text-[#444]">This certifies that</p>
-                </div>
-
-                <div className="mb-4">
-                    <h3 className="text-[3.2rem] font-bold text-[#111] font-serif leading-tight">
-                        [{userName || "Learner Name"}]
-                    </h3>
-                </div>
-
-                <div className="mb-2">
-                    <p className="text-lg text-[#333] font-sans">
-                        has successfully completed the accredited safeguarding course
-                    </p>
-                </div>
-
-                <div className="mb-4">
-                    <h4 className="text-xl font-bold text-[#111] font-sans">
-                        [{title || "Course Name"}]
-                    </h4>
-                </div>
-
-                <div className="mb-0 max-w-3xl">
-                    <p className="text-lg text-[#333] font-sans">
-                        and has demonstrated satisfactory understanding of the required learning outcomes.
-                    </p>
-                </div>
+            {/* 2. Body / Certification Info */}
+            <div className="flex flex-col items-center text-center">
+                <p 
+                    style={{ 
+                        fontFamily: "'Libre Baskerville', serif",
+                        fontSize: '20px', 
+                        fontStyle: 'italic',
+                        color: '#444',
+                        marginBottom: '20px'
+                    }}
+                >
+                    This certifies that
+                </p>
+                <h3 
+                    style={{ 
+                        fontFamily: "'Libre Baskerville', serif",
+                        fontSize: '56px', 
+                        fontWeight: '700',
+                        color: '#111',
+                        marginBottom: '24px',
+                        lineHeight: '1'
+                    }}
+                >
+                    {userName || "[Learner Name]"}
+                </h3>
+                <p 
+                    style={{ 
+                        fontFamily: 'Montserrat, sans-serif',
+                        fontSize: '18px', 
+                        color: '#333',
+                        marginBottom: '8px'
+                    }}
+                >
+                    has successfully completed the accredited safeguarding course
+                </p>
+                <h4 
+                    style={{ 
+                        fontFamily: 'Montserrat, sans-serif',
+                        fontSize: '24px', 
+                        fontWeight: '700',
+                        color: '#111',
+                        marginBottom: '16px'
+                    }}
+                >
+                    {title || "[Course Title]"}
+                </h4>
+                <p 
+                    style={{ 
+                        fontFamily: 'Montserrat, sans-serif',
+                        fontSize: '16px', 
+                        color: '#555',
+                        maxWidth: '750px',
+                        lineHeight: '1.6'
+                    }}
+                >
+                    and has demonstrated satisfactory understanding of the required learning outcomes as set out by the UK safeguarding standards.
+                </p>
             </div>
 
-            {/* Bottom: Table & Signature */}
+            {/* 3. Table & Signature Footer */}
             <div className="w-full flex flex-col items-center">
-                {/* Table */}
-                <div className="w-full max-w-[550px] mb-8">
-                    <table className="w-full text-left border-collapse border border-slate-200">
+                {/* Information Table */}
+                <div style={{ width: '550px', marginBottom: '40px' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <tbody>
-                            <tr className="border-b border-slate-200">
-                                <td className="p-2 border-r border-slate-200 font-sans text-[12px] text-[#444] w-1/3 pl-4">Date Completed</td>
-                                <td className="p-2 text-[#222] font-sans font-medium text-[13px] pl-4">[{date || "Insert Date"}]</td>
+                            <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                                <td style={{ padding: '8px 16px', borderRight: '1px solid #e2e8f0', fontFamily: 'Montserrat, sans-serif', fontSize: '11px', color: '#666', width: '40%', fontWeight: '600' }}>Date Completed</td>
+                                <td style={{ padding: '8px 16px', fontFamily: 'Montserrat, sans-serif', fontSize: '13px', color: '#111', fontWeight: '700' }}>{date || "[DD MM YYYY]"}</td>
                             </tr>
-                            <tr className="border-b border-slate-200">
-                                <td className="p-2 border-r border-slate-200 font-sans text-[12px] text-[#444] pl-4">Certificate Number</td>
-                                <td className="p-2 text-[#222] font-sans font-medium text-[13px] pl-4">[{id || "Insert ID"}]</td>
+                            <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                                <td style={{ padding: '8px 16px', borderRight: '1px solid #e2e8f0', fontFamily: 'Montserrat, sans-serif', fontSize: '11px', color: '#666', fontWeight: '600' }}>Certificate ID</td>
+                                <td style={{ padding: '8px 16px', fontFamily: 'Montserrat, sans-serif', fontSize: '13px', color: '#111', fontWeight: '700' }}>{id || "[Unique ID]"}</td>
                             </tr>
                             <tr>
-                                <td className="p-2 border-r border-slate-200 font-sans text-[12px] text-[#444] pl-4">Valid Until</td>
-                                <td className="p-2 text-[#222] font-sans font-medium text-[13px] pl-4">[{expiryDate || "Optional Expiry Date"}]</td>
+                                <td style={{ padding: '8px 16px', borderRight: '1px solid #e2e8f0', fontFamily: 'Montserrat, sans-serif', fontSize: '11px', color: '#666', fontWeight: '600' }}>Valid Until</td>
+                                <td style={{ padding: '8px 16px', fontFamily: 'Montserrat, sans-serif', fontSize: '13px', color: '#111', fontWeight: '700' }}>{expiryDate || "Lifetime Validity"}</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
 
-                {/* Signature */}
+                {/* Signature Line */}
                 <div className="flex flex-col items-center">
-                  <div className="text-[12px] font-sans text-[#444] mb-1">
-                    Signed: _____________________________________________
+                  <div style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '12px', color: '#444', marginBottom: '8px' }}>
+                    Signed: ____________________________________________________
                   </div>
-                  <p className="text-[12px] font-sans font-medium text-[#111]">
+                  <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '12px', fontWeight: '700', color: '#111', margin: 0 }}>
                       Des Webb | Training Director | The London Safeguarding Network
                   </p>
                 </div>
             </div>
         </div>
       </div>
-
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;500;600;700;800;900&display=swap');
-        
-        .certificate-container {
-          font-family: 'Montserrat', sans-serif;
-        }
-        
-        .font-serif {
-          font-family: 'Libre+Baskerville', serif !important;
-        }
-
-        @media print {
-          @page {
-            size: landscape;
-            margin: 0;
-          }
-          body {
-            margin: 0;
-            padding: 0;
-            background: white !important;
-          }
-          .certificate-wrapper {
-            padding: 0 !important;
-            margin: 0 !important;
-            background: white !important;
-            height: 100vh !important;
-            width: 100vw !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-          }
-          .certificate-container {
-            width: 100% !important;
-            height: 100% !important;
-            max-width: none !important;
-            padding: 1in !important;
-            box-shadow: none !important;
-            border: 0 !important;
-            margin: 0 !important;
-            justify-content: space-between !important;
-          }
-          .no-print {
-            display: none !important;
-          }
-          /* Hide app elements */
-          #root > *:not(.certificate-wrapper) {
-            display: none !important;
-          }
-        }
-      `}</style>
     </div>
   );
-};
+});
 
 export default CertificateTemplate;

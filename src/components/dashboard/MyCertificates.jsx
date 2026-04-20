@@ -10,52 +10,24 @@ const MyCertificates = ({ certificates }) => {
   const { user } = useAuth();
   const [selectedCert, setSelectedCert] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const certificateRef = React.useRef(null);
 
-  const handlePrint = () => {
-    window.print();
+  const handleDownloadPDF = async () => {
+    if (certificateRef.current) {
+      setIsDownloading(true);
+      await certificateRef.current.exportAsPDF();
+      setIsDownloading(false);
+    }
   };
 
-  const handleDownload = async (cert) => {
-    if (!cert) return;
-    
-    // If modal is not open, we need to select it first to render it
-    if (!selectedCert) setSelectedCert(cert);
-    
-    setIsDownloading(true);
-    
-    // Small delay to ensure the DOM is rendered and images are loaded
-    setTimeout(async () => {
-      try {
-        const element = document.getElementById('certificate-content');
-        if (!element) {
-          console.error('Certificate element not found');
-          setIsDownloading(false);
-          return;
-        }
-
-        const canvas = await html2canvas(element, {
-          scale: 2, // High quality
-          useCORS: true,
-          logging: false,
-          backgroundColor: '#ffffff'
-        });
-
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF({
-          orientation: 'landscape',
-          unit: 'px',
-          format: [canvas.width, canvas.height]
-        });
-
-        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-        pdf.save(`Certificate-${cert.title.replace(/\s+/g, '-')}.pdf`);
-      } catch (error) {
-        console.error('Error generating PDF:', error);
-      } finally {
-        setIsDownloading(false);
-      }
-    }, 1000);
+  const handleDownloadImage = async () => {
+    if (certificateRef.current) {
+      setIsDownloading(true);
+      await certificateRef.current.exportAsImage();
+      setIsDownloading(false);
+    }
   };
+
   if (!certificates || certificates.length === 0) {
     return (
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -77,9 +49,11 @@ const MyCertificates = ({ certificates }) => {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-black text-dark tracking-tight">My Certificates</h2>
-        <span className="bg-primary/10 text-primary px-4 py-1.5 rounded-full text-xs font-black tracking-widest uppercase">
-          {certificates.length} {certificates.length === 1 ? 'Achievement' : 'Achievements'}
-        </span>
+        <div className="flex items-center gap-4">
+           <span className="bg-primary/10 text-primary px-4 py-1.5 rounded-full text-xs font-black tracking-widest uppercase">
+              {certificates.length} {certificates.length === 1 ? 'Achievement' : 'Achievements'}
+           </span>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -126,14 +100,6 @@ const MyCertificates = ({ certificates }) => {
                   >
                      View Certificate
                   </button>
-                  <button 
-                    onClick={() => handleDownload(cert)}
-                    disabled={isDownloading}
-                    className="flex-1 border-2 border-slate-100 text-slate-600 font-bold py-4 rounded-2xl hover:border-primary/20 hover:text-primary transition-all text-sm flex items-center justify-center gap-2"
-                  >
-                     {isDownloading ? <FiLoader className="animate-spin" /> : <FiDownload />}
-                     Download PDF
-                  </button>
                </div>
             </div>
           </div>
@@ -142,59 +108,55 @@ const MyCertificates = ({ certificates }) => {
 
       {/* Certificate Modal - Rendered via Portal for full-screen coverage */}
       {selectedCert && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-8 overflow-y-auto bg-[#0a0f18]/90 backdrop-blur-xl animate-in fade-in duration-500 print:p-0 print:bg-white">
+        <div className="fixed inset-0 z-[9999] flex flex-col bg-[#0a0f18]/95 backdrop-blur-xl animate-in fade-in duration-500 overflow-hidden">
           
-          {/* Floating Close Button for easier access */}
-          <button 
-            onClick={() => setSelectedCert(null)}
-            className="fixed top-6 right-6 z-[10000] w-14 h-14 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center backdrop-blur-md border border-white/20 transition-all hover:scale-110 active:scale-95 group print:hidden shadow-2xl"
-            title="Close Preview"
-          >
-            <FiX className="w-8 h-8 group-hover:rotate-90 transition-transform duration-300" />
-          </button>
-
-          <div className="relative w-full max-w-[1240px] bg-white rounded-[40px] shadow-[0_0_80px_rgba(0,0,0,0.5)] overflow-hidden animate-in zoom-in-95 duration-500 print:shadow-none print:rounded-none">
-            
-            {/* Modal Header - Non-printable */}
-            <div className="flex items-center justify-between p-8 border-b border-slate-100 bg-white/80 backdrop-blur-sm sticky top-0 z-10 print:hidden">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center">
+          {/* Modal Header Bar */}
+          <div className="flex items-center justify-between p-6 bg-white shrink-0 border-b border-slate-200">
+            <div className="flex items-center gap-6">
+               <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center">
                   <FiAward className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-dark">Certificate Preview</h3>
-                  <p className="text-sm text-slate-500 font-medium">Official accreditation document</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={() => handleDownload(selectedCert)}
+               </div>
+               <div>
+                  <h3 className="text-xl font-bold text-dark">{selectedCert.title}</h3>
+                  <p className="text-sm text-slate-500 font-medium italic">Accredited Certificate Preview</p>
+               </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+               <button 
+                  onClick={handleDownloadPDF}
                   disabled={isDownloading}
                   className="flex items-center gap-3 bg-primary text-white px-8 py-3 rounded-2xl font-bold hover:bg-primary-dark transition-all shadow-xl shadow-primary/25 disabled:opacity-50 active:scale-95"
                 >
                   {isDownloading ? <FiLoader className="animate-spin w-5 h-5" /> : <FiDownload className="w-5 h-5" />}
-                  {isDownloading ? 'Generating PDF...' : 'Direct Download'}
+                  Download PDF
                 </button>
                 <button 
-                  onClick={handlePrint}
-                  className="flex items-center gap-2 border-2 border-slate-200 text-slate-600 px-6 py-3 rounded-2xl font-bold hover:bg-slate-50 transition-all active:scale-95"
+                  onClick={handleDownloadImage}
+                  disabled={isDownloading}
+                  className="flex items-center gap-3 border-2 border-slate-200 text-slate-600 px-8 py-3 rounded-2xl font-bold hover:bg-slate-50 transition-all active:scale-95 disabled:opacity-50"
                 >
-                  <FiPrinter className="w-5 h-5" /> Print
+                  <FiDownload className="w-5 h-5" />
+                  Save as Image
                 </button>
                 <button 
                   onClick={() => setSelectedCert(null)}
-                  className="w-12 h-12 bg-slate-50 text-slate-500 rounded-2xl flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-all active:scale-95"
+                  className="w-12 h-12 bg-slate-100 text-slate-500 rounded-2xl flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-all active:scale-95"
                 >
                   <FiX className="w-6 h-6" />
                 </button>
-              </div>
             </div>
+          </div>
 
-            {/* Certificate Template Content */}
-            <div className="p-0 md:p-12 bg-slate-50/50 flex justify-center print:bg-white print:p-0">
-               <CertificateTemplate certificate={selectedCert} userName={user?.name} />
-            </div>
+          {/* Certificate Display Area - Scrollable for fixed layout */}
+          <div className="flex-1 overflow-auto p-8 md:p-16 flex justify-center bg-[#0a0f18]/50">
+             <div className="h-fit">
+                <CertificateTemplate 
+                    ref={certificateRef} 
+                    certificate={selectedCert} 
+                    userName={user?.name} 
+                />
+             </div>
           </div>
         </div>,
         document.body

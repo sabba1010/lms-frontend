@@ -7,101 +7,139 @@ const CertificateTemplate = ({ certificate, userName }) => {
   const { title, date, id, expiryDate } = certificate;
 
   return (
-    <div className="certificate-container bg-white p-8 md:p-16 max-w-4xl mx-auto shadow-2xl relative border-8 border-double border-slate-100 print:shadow-none print:border-0 print:p-0">
-      {/* Decorative Border Layer */}
-      <div className="absolute inset-4 border-2 border-slate-200 pointer-events-none print:hidden"></div>
-
-      <div className="relative z-10 flex flex-col items-center text-center space-y-8">
-        {/* Logo Section */}
-        <div className="w-48 mb-4">
-          <img src={logo} alt="London Safeguarding Network Logo" className="w-full h-auto object-contain" />
+    <div className="certificate-wrapper bg-[#f5f5f5] p-2 md:p-8 min-h-screen flex items-center justify-center print:bg-white print:p-0">
+      <div className="certificate-container bg-white w-full max-w-[1100px] aspect-[1.414/1] p-16 md:p-24 shadow-2xl flex flex-col items-center text-center relative print:shadow-none print:p-12 print:max-w-none print:w-screen print:h-screen">
+        
+        {/* 1. Logo */}
+        <div className="mb-6">
+          <img src={logo} alt="Logo" className="w-48 h-auto" />
         </div>
 
-        {/* Brand Name */}
-        <div className="space-y-2">
-          <h2 className="text-xl md:text-2xl font-medium tracking-widest text-[#1a1a1a] uppercase">
+        {/* 2. Brand Name */}
+        <div className="mb-4">
+          <h2 className="text-lg md:text-xl font-medium tracking-[0.3em] text-[#333] uppercase font-sans">
             THE LONDON SAFEGUARDING NETWORK
           </h2>
-          <div className="h-1 w-32 bg-[#008080] mx-auto"></div>
         </div>
 
-        {/* Certificate Title */}
-        <h1 className="text-4xl md:text-5xl font-bold text-[#008080] tracking-tight uppercase leading-none">
-          CERTIFICATE OF ACHIEVEMENT
-        </h1>
+        {/* 3. Main Title */}
+        <div className="mb-8">
+          <h1 className="text-5xl md:text-6xl font-bold text-[#007A7A] tracking-tighter uppercase font-sans">
+            CERTIFICATE OF ACHIEVEMENT
+          </h1>
+        </div>
 
-        {/* Certification Text */}
-        <div className="space-y-6 max-w-2xl">
-          <p className="text-lg italic serif text-slate-600">This certifies that</p>
-          
-          <h3 className="text-3xl md:text-4xl font-bold text-dark border-b-2 border-slate-200 pb-2 inline-block min-w-[300px]">
-            {userName || "[Learner Name]"}
+        {/* 4. Sub-text */}
+        <div className="mb-4">
+          <p className="text-xl font-serif italic text-[#444]">This certifies that</p>
+        </div>
+
+        {/* 5. Learner Name */}
+        <div className="mb-6">
+          <h3 className="text-5xl md:text-6xl font-normal text-[#111] font-serif tracking-tight">
+            [{userName || "Learner Name"}]
           </h3>
+        </div>
 
-          <p className="text-lg text-slate-700 leading-relaxed">
+        {/* 6. Success phrase */}
+        <div className="mb-2">
+          <p className="text-xl text-[#333] font-medium leading-relaxed">
             has successfully completed the accredited safeguarding course
           </p>
+        </div>
 
-          <h4 className="text-2xl font-bold text-dark tracking-tight">
-            {title || "[Course Name]"}
+        {/* 7. Course Name */}
+        <div className="mb-8">
+          <h4 className="text-2xl md:text-3xl font-bold text-[#111] tracking-tight">
+            [{title || "Course Name"}]
           </h4>
+        </div>
 
-          <p className="text-lg text-slate-700">
+        {/* 8. Outcome text */}
+        <div className="mb-12 max-w-3xl">
+          <p className="text-xl text-[#333] font-medium">
             and has demonstrated satisfactory understanding of the required learning outcomes.
           </p>
         </div>
 
-        {/* Details Table */}
-        <div className="w-full max-w-xl border border-slate-200 rounded-lg overflow-hidden mt-8">
-          <table className="w-full text-left border-collapse">
+        {/* 9. Data Table */}
+        <div className="w-full max-w-2xl mb-16">
+          <table className="w-full text-left border-collapse border border-slate-300">
             <tbody>
-              <tr className="border-b border-slate-100">
-                <td className="p-4 bg-slate-50 font-semibold text-sm text-slate-500 uppercase tracking-wider w-1/3">Date Completed</td>
-                <td className="p-4 text-dark font-medium">{date || "[Insert Date]"}</td>
+              <tr className="border-b border-slate-300">
+                <td className="p-3 border-r border-slate-300 font-medium text-sm text-[#444] w-1/3">Date Completed</td>
+                <td className="p-3 text-[#111] font-medium">[{date || "Insert Date"}]</td>
               </tr>
-              <tr className="border-b border-slate-100">
-                <td className="p-4 bg-slate-50 font-semibold text-sm text-slate-500 uppercase tracking-wider">Certificate Number</td>
-                <td className="p-4 text-dark font-medium">{id || "[Insert ID]"}</td>
+              <tr className="border-b border-slate-300">
+                <td className="p-3 border-r border-slate-300 font-medium text-sm text-[#444]">Certificate Number</td>
+                <td className="p-3 text-[#111] font-medium">[{id || "Insert ID"}]</td>
               </tr>
               <tr>
-                <td className="p-4 bg-slate-50 font-semibold text-sm text-slate-500 uppercase tracking-wider">Valid Until</td>
-                <td className="p-4 text-dark font-medium">{expiryDate || "N/A"}</td>
+                <td className="p-3 border-r border-slate-300 font-medium text-sm text-[#444]">Valid Until</td>
+                <td className="p-3 text-[#111] font-medium">[{expiryDate || "Optional Expiry Date"}]</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        {/* Signature Section */}
-        <div className="w-full pt-12 flex flex-col items-center">
-            <div className="w-64 border-t-2 border-slate-400 mb-2"></div>
-            <p className="text-sm font-bold text-dark">Signed</p>
-            <p className="text-xs text-slate-500 mt-2 font-medium">
-                Des Webb | Training Director | The London Safeguarding Network
-            </p>
+        {/* 10. Signature Section */}
+        <div className="w-full flex flex-col items-center mt-auto">
+            <div className="flex flex-col items-center">
+              <div className="text-sm font-medium text-[#444] mb-2">
+                Signed: _____________________________________________
+              </div>
+              <p className="text-sm font-medium text-[#111] tracking-wide">
+                  Des Webb | Training Director | The London Safeguarding Network
+              </p>
+            </div>
         </div>
       </div>
 
-      {/* Print Styles */}
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;500;600;700;800&display=swap');
+        
+        .certificate-container {
+          font-family: 'Montserrat', sans-serif;
+        }
+        
+        .font-serif {
+          font-family: 'Libre+Baskerville', serif !important;
+        }
+
         @media print {
-          body * {
-            visibility: hidden;
+          @page {
+            size: landscape;
+            margin: 0;
           }
-          .certificate-container, .certificate-container * {
-            visibility: visible;
+          body {
+            margin: 0;
+            padding: 0;
+            background: white !important;
+          }
+          .certificate-wrapper {
+            padding: 0 !important;
+            margin: 0 !important;
+            background: white !important;
+            height: 100vh !important;
+            width: 100vw !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
           }
           .certificate-container {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: auto;
-            margin: 0;
-            padding: 20px;
-            box-shadow: none;
-            border: 0;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important;
+            padding: 1in !important;
+            box-shadow: none !important;
+            border: 0 !important;
+            margin: 0 !important;
           }
           .no-print {
+            display: none !important;
+          }
+          /* Hide app elements */
+          #root > *:not(.certificate-wrapper) {
             display: none !important;
           }
         }

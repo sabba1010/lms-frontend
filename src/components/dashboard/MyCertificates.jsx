@@ -98,7 +98,7 @@ const MyCertificates = ({ certificates }) => {
       {/* Certificate Modal */}
       {selectedCert && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:p-8 overflow-y-auto bg-dark/60 backdrop-blur-sm animate-in fade-in duration-300 print:p-0 print:bg-white">
-          <div className="relative w-full max-w-5xl bg-white rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 print:shadow-none print:rounded-none">
+          <div className="relative w-full max-w-[1200px] bg-white rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 print:shadow-none print:rounded-none">
             
             {/* Modal Header - Non-printable */}
             <div className="flex items-center justify-between p-6 border-b border-slate-100 print:hidden">

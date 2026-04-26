@@ -7,11 +7,11 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://lms-backend-txu9.onrender.com',
+        target: 'http://localhost:5000',
         changeOrigin: true,
       },
       '/scorm/': {
-        target: 'https://lms-backend-txu9.onrender.com',
+        target: 'http://localhost:5000',
         changeOrigin: true,
       }
     }

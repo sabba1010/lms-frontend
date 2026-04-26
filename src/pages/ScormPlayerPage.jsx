@@ -8,44 +8,110 @@ import { useAuth } from '../context/AuthContext';
 // Articulate Rise SCORM 1.2 encodes progress inside cmi.suspend_data as JSON.
 // This function extracts a 0-100 integer from it — NO DOM scraping needed.
 // ─────────────────────────────────────────────────────────────────────────────
-function parseRiseProgress(suspendData) {
+// Helper to decode Articulate Rise's custom LZW-compressed JSON
+function decodeRiseSuspendData(suspendData) {
   if (!suspendData || typeof suspendData !== 'string') return null;
   try {
-    const parsed = JSON.parse(suspendData);
-
-    // Rise 360 most common format: { completion: { percent: 0.29 }, ... }
-    if (typeof parsed?.completion?.percent === 'number') {
-      return Math.round(parsed.completion.percent * 100);
-    }
-    // Alternate: { progress: 0.29 }
-    if (typeof parsed?.progress === 'number') {
-      const val = parsed.progress <= 1 ? parsed.progress * 100 : parsed.progress;
-      return Math.round(val);
-    }
-    // Alternate: { completionPercentage: 29 }
-    if (typeof parsed?.completionPercentage === 'number') {
-      return Math.round(parsed.completionPercentage);
-    }
-    // Alternate: array of lesson completion booleans [ true, false, false, ... ]
-    if (Array.isArray(parsed)) {
-      const total = parsed.length;
-      if (total === 0) return null;
-      const done = parsed.filter(Boolean).length;
-      return Math.round((done / total) * 100);
-    }
-    // Fallback: walk all keys that contain 'percent' or 'progress'
-    for (const key of Object.keys(parsed)) {
-      const lower = key.toLowerCase();
-      if (lower.includes('percent') || lower.includes('progress')) {
-        const val = parseFloat(parsed[key]);
-        if (!isNaN(val)) return Math.round(val <= 1 ? val * 100 : val);
+    const parsedOuter = JSON.parse(suspendData);
+    // If it's the compressed format: {"v":2, "d":[...]}
+    if (parsedOuter && typeof parsedOuter === 'object' && parsedOuter.v !== undefined && Array.isArray(parsedOuter.d)) {
+      const arr = parsedOuter.d;
+      if (arr.length === 0) return null;
+      let dict = [];
+      for (let i = 0; i < 256; i++) dict[i] = String.fromCharCode(i);
+      let w = String.fromCharCode(arr[0]);
+      let result = w;
+      let dictSize = 256;
+      for (let i = 1; i < arr.length; i++) {
+        let k = arr[i];
+        let entry = '';
+        if (k < dictSize) {
+          entry = dict[k];
+        } else if (k === dictSize) {
+          entry = w + w.charAt(0);
+        } else {
+          return null; // Decode error
+        }
+        result += entry;
+        dict[dictSize++] = w + entry.charAt(0);
+        w = entry;
       }
+      return JSON.parse(result); // Return the actual decompressed JSON
     }
+    // If it was already raw JSON (e.g. { completion: ... })
+    return parsedOuter;
   } catch (e) {
-    // Not JSON — plain string, ignore
+    return null;
+  }
+}
+
+function parseRiseProgress(suspendData) {
+  const parsed = decodeRiseSuspendData(suspendData);
+  if (!parsed) return null;
+
+  // New accurate format discovered via LZW decode: { progress: { p: 14 } }
+  if (typeof parsed?.progress?.p === 'number') {
+    return Math.round(parsed.progress.p);
+  }
+  // Alternate: { completion: { percent: 0.29 } }
+  if (typeof parsed?.completion?.percent === 'number') {
+    return Math.round(parsed.completion.percent * 100);
+  }
+  // Alternate: { progress: 0.29 }
+  if (typeof parsed?.progress === 'number') {
+    const val = parsed.progress <= 1 ? parsed.progress * 100 : parsed.progress;
+    return Math.round(val);
+  }
+  // Alternate: { completionPercentage: 29 }
+  if (typeof parsed?.completionPercentage === 'number') {
+    return Math.round(parsed.completionPercentage);
+  }
+  // Alternate: array of lesson completion booleans
+  if (Array.isArray(parsed)) {
+    const total = parsed.length;
+    if (total === 0) return null;
+    return Math.round((parsed.filter(Boolean).length / total) * 100);
   }
   return null;
 }
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RISE SCORE PARSER — Extract quiz/assessment score from suspend_data
+// Rise stores quiz score separately from completion percent in its JSON state
+// ─────────────────────────────────────────────────────────────────────────────
+function parseRiseScore(suspendData) {
+  const parsed = decodeRiseSuspendData(suspendData);
+  if (!parsed) return null;
+
+  try {
+    // Common Rise score fields
+    if (typeof parsed?.score === 'number') {
+      const val = parsed.score <= 1 ? parsed.score * 100 : parsed.score;
+      return Math.round(val);
+    }
+    if (typeof parsed?.quiz?.score === 'number') {
+      const val = parsed.quiz.score <= 1 ? parsed.quiz.score * 100 : parsed.quiz.score;
+      return Math.round(val);
+    }
+    if (typeof parsed?.assessment?.score === 'number') {
+      return Math.round(parsed.assessment.score);
+    }
+    if (typeof parsed?.result?.score === 'number') {
+      return Math.round(parsed.result.score);
+    }
+    // Walk keys that contain 'score'
+    for (const key of Object.keys(parsed)) {
+      if (key.toLowerCase().includes('score')) {
+        const val = parseFloat(parsed[key]);
+        if (!isNaN(val) && val > 0) return Math.round(val <= 1 ? val * 100 : val);
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
+
 
 // Derive progress from lesson_location "currentSlide/totalSlides" format
 function deriveProgressFromLocation(location) {
@@ -124,10 +190,6 @@ const ScormPlayerPage = () => {
     const fromLocation = deriveProgressFromLocation(cmi['cmi.core.lesson_location'] || cmi['cmi.location']);
     if (fromLocation !== null && fromLocation > 0) return fromLocation;
 
-    // 5) score.raw as proxy for quiz-based courses
-    const scoreRaw = parseFloat(cmi['cmi.core.score.raw'] || cmi['cmi.score.raw']);
-    if (!isNaN(scoreRaw) && scoreRaw > 0) return Math.min(100, Math.round(scoreRaw));
-
     return 0;
   };
 
@@ -173,7 +235,19 @@ const ScormPlayerPage = () => {
         status: cmi['cmi.core.lesson_status'] || cmi['cmi.completion_status'],
         sessionTime: sessionSeconds,
         progress,
+        // Quiz score: try score.raw first, then parse from suspend_data (Rise stores quiz score there)
+        score: (() => {
+          // Method 1: cmi.core.score.raw (standard SCORM 1.2)
+          const rawField = parseFloat(cmi['cmi.core.score.raw'] || cmi['cmi.score.raw'] || '');
+          if (!isNaN(rawField) && rawField > 0) return Math.min(100, Math.max(0, rawField));
+          // Method 2: parse from suspend_data JSON (Rise 360 specific)
+          const fromSuspend = parseRiseScore(rawSuspendData);
+          if (fromSuspend !== null && fromSuspend > 0) return fromSuspend;
+          return undefined;
+        })(),
       };
+
+
 
       console.log('%c[SCORM] Sending progress to backend: ' + progress + '%', 'color: #4caf50; font-weight:bold');
 

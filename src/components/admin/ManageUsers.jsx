@@ -492,16 +492,54 @@ const ManageUsers = () => {
                                   day: '2-digit', month: 'short', year: 'numeric'
                                 }) : 'N/A'}
                               </div>
-                              <div className="flex items-center gap-3 mt-1.5">
-                                <div className="flex-1 h-1.5 bg-white rounded-full overflow-hidden border border-slate-100">
-                                  <div
-                                    className="h-full bg-primary rounded-full transition-all duration-1000"
-                                    style={{ width: `${enrollment.status === 'completed' ? 100 : (enrollment.progress || 0)}%` }}
-                                  />
+                              {/* Dual Progress Bars */}
+                              <div className="flex flex-col gap-2 mt-1.5">
+                                {/* Bar 1: Course Progress */}
+                                <div>
+                                  <div className="flex items-center justify-between mb-0.5">
+                                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">ð Course Progress</span>
+                                    <span className="text-[10px] font-black" style={{ color: '#6366f1' }}>
+                                      {enrollment.status === 'completed' ? '100%' : `${enrollment.progress || 0}%`}
+                                    </span>
+                                  </div>
+                                  <div className="h-1.5 bg-white rounded-full overflow-hidden border border-slate-100">
+                                    <div
+                                      className="h-full rounded-full transition-all duration-1000"
+                                      style={{
+                                        width: `${enrollment.status === 'completed' ? 100 : (enrollment.progress || 0)}%`,
+                                        background: 'linear-gradient(90deg, #6366f1, #8b5cf6)',
+                                      }}
+                                    />
+                                  </div>
                                 </div>
-                                <span className="text-[11px] font-black text-primary w-8">
-                                  {enrollment.status === 'completed' ? '100%' : `${enrollment.progress || 0}%`}
-                                </span>
+                                {/* Bar 2: Quiz Score */}
+                                <div>
+                                  <div className="flex items-center justify-between mb-0.5">
+                                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">ð¯ Quiz Score</span>
+                                    <span className="text-[10px] font-black text-amber-500">
+                                      {(() => {
+                                        const quizScore = enrollment.score != null && enrollment.score !== ''
+                                          ? Math.round(Number(enrollment.score))
+                                          : (enrollment.progress || 0);
+                                        return `${quizScore}%`;
+                                      })()}
+                                    </span>
+                                  </div>
+                                  <div className="h-1.5 bg-white rounded-full overflow-hidden border border-slate-100">
+                                    <div
+                                      className="h-full rounded-full transition-all duration-1000"
+                                      style={{
+                                        width: `${(() => {
+                                          const quizScore = enrollment.score != null && enrollment.score !== ''
+                                            ? Math.round(Number(enrollment.score))
+                                            : (enrollment.progress || 0);
+                                          return Math.min(100, quizScore);
+                                        })()}%`,
+                                        background: 'linear-gradient(90deg, #f59e0b, #ef4444)',
+                                      }}
+                                    />
+                                  </div>
+                                </div>
                               </div>
                             </div>
                             <div className="shrink-0">

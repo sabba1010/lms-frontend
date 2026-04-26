@@ -250,7 +250,7 @@ const ManageUsers = () => {
                             <span className="text-slate-400">{user.enrolledCourses?.length || 0} Courses</span>
                             <span className="text-primary">
                               {user.enrolledCourses?.length > 0 
-                                ? Math.round(user.enrolledCourses.reduce((acc, c) => acc + (c.progress || 0), 0) / user.enrolledCourses.length) 
+                                ? Math.round(user.enrolledCourses.reduce((acc, c) => acc + (c.status === 'completed' ? 100 : (c.progress || 0)), 0) / user.enrolledCourses.length) 
                                 : 0}%
                             </span>
                           </div>
@@ -259,7 +259,7 @@ const ManageUsers = () => {
                               className="h-full bg-primary rounded-full transition-all duration-700"
                               style={{ 
                                 width: `${user.enrolledCourses?.length > 0 
-                                  ? Math.round(user.enrolledCourses.reduce((acc, c) => acc + (c.progress || 0), 0) / user.enrolledCourses.length) 
+                                  ? Math.round(user.enrolledCourses.reduce((acc, c) => acc + (c.status === 'completed' ? 100 : (c.progress || 0)), 0) / user.enrolledCourses.length) 
                                   : 0}%` 
                               }}
                             />
@@ -496,10 +496,12 @@ const ManageUsers = () => {
                                 <div className="flex-1 h-1.5 bg-white rounded-full overflow-hidden border border-slate-100">
                                   <div
                                     className="h-full bg-primary rounded-full transition-all duration-1000"
-                                    style={{ width: `${enrollment.progress || 0}%` }}
+                                    style={{ width: `${enrollment.status === 'completed' ? 100 : (enrollment.progress || 0)}%` }}
                                   />
                                 </div>
-                                <span className="text-[11px] font-black text-primary w-8">{enrollment.progress || 0}%</span>
+                                <span className="text-[11px] font-black text-primary w-8">
+                                  {enrollment.status === 'completed' ? '100%' : `${enrollment.progress || 0}%`}
+                                </span>
                               </div>
                             </div>
                             <div className="shrink-0">

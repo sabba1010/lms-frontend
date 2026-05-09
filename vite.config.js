@@ -15,6 +15,7 @@ export default defineConfig({
         changeOrigin: true,
       },
 
+      
       '/uploads': {
         target: 'http://104.250.128.20',
         changeOrigin: true,
@@ -22,3 +23,4 @@ export default defineConfig({
     }
   }
 })
+

@@ -6,17 +6,17 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://104.250.128.20',
         changeOrigin: true,
       },
 
       '/scorm': {
-        target: 'http://localhost:5000',
+        target: 'http://104.250.128.20',
         changeOrigin: true,
       },
 
       '/uploads': {
-        target: 'http://localhost:5000',
+        target: 'http://104.250.128.20',
         changeOrigin: true,
       }
     }

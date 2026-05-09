@@ -130,6 +130,8 @@ const ScormPlayerPage = () => {
 
   const [course, setCourse] = useState(null);
   const [entryPoint, setEntryPoint] = useState(null);
+  const [iframeSrc, setIframeSrc] = useState('');
+  const [bridgeReady, setBridgeReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -393,41 +395,124 @@ const ScormPlayerPage = () => {
 
   // Bind APIs to window BEFORE iframe loads (synchronous)
   useLayoutEffect(() => {
-    const bind = (win) => {
-      if (!win) return;
+    const findApiWindow = (win, maxDepth = 7, depth = 0) => {
+      if (!win || depth > maxDepth) return null;
       try {
-        win.API = scormAPI.api12;
-        win.API_Adapter = scormAPI.api12;
-        win.API_1484_11 = scormAPI.api2004;
-        win.findAPI = (w) => (w.API || w.API_1484_11 ? w : null);
-        win.GetAPI = () => scormAPI.api12;
-        win.IsLmsPresent = () => true;
-        win.name = 'LMSFrame';
+        if (win.API || win.API_1484_11) return win;
+        if (typeof win.findAPI === 'function') {
+          const found = win.findAPI(win);
+          if (found) return found;
+        }
+        if (win.parent && win.parent !== win) {
+          const found = findApiWindow(win.parent, maxDepth, depth + 1);
+          if (found) return found;
+        }
+        if (win.top && win.top !== win) {
+          const found = findApiWindow(win.top, maxDepth, depth + 1);
+          if (found) return found;
+        }
+        if (win.opener && win.opener !== win) {
+          const found = findApiWindow(win.opener, maxDepth, depth + 1);
+          if (found) return found;
+        }
+      } catch (e) {
+        return null;
+      }
+      return null;
+    };
+
+    const bindWindow = (targetWin) => {
+      if (!targetWin) return;
+      try {
+        const api12 = scormAPI.api12;
+        const api2004 = scormAPI.api2004;
+
+        targetWin.API = api12;
+        targetWin.API_Adapter = api12;
+        targetWin.API_1484_11 = api2004;
+        targetWin.findAPI = (startWin = targetWin) => {
+          const found = findApiWindow(startWin);
+          return found ? (found.API || found.API_1484_11) : null;
+        };
+        targetWin.GetAPI = () => targetWin.API || targetWin.API_1484_11 || api12;
+        targetWin.IsLmsPresent = () => true;
+        targetWin.LMSInitialize = api12.LMSInitialize;
+        targetWin.Initialize = api2004.Initialize;
+        targetWin.LMSFinish = api12.LMSFinish;
+        targetWin.Terminate = api2004.Terminate;
+        targetWin.LMSGetLastError = api12.LMSGetLastError;
+        targetWin.GetLastError = api2004.GetLastError;
+        targetWin.LMSGetErrorString = api12.LMSGetErrorString;
+        targetWin.GetErrorString = api2004.GetErrorString;
+        targetWin.LMSGetDiagnostic = api12.LMSGetDiagnostic;
+        targetWin.GetDiagnostic = api2004.GetDiagnostic;
+        console.log('✅ SCORM API bound on window:', targetWin === window ? 'self' : targetWin === window.parent ? 'parent' : 'other');
+      } catch (e) {
+        console.warn('[SCORM] API bind failed for window', e);
+      }
+    };
+
+    bindWindow(window);
+    try {
+      if (window.parent && window.parent !== window) bindWindow(window.parent);
+      if (window.top && window.top !== window) bindWindow(window.top);
+      if (window.opener) bindWindow(window.opener);
+    } catch (e) {
+      console.warn('[SCORM] Parent binding skipped due to cross-origin', e);
+    }
+
+    if (entryPoint) {
+      setIframeSrc(entryPoint);
+      setBridgeReady(true);
+    }
+
+    return () => {
+      try {
+        delete window.API;
+        delete window.API_Adapter;
+        delete window.API_1484_11;
+        delete window.findAPI;
+        delete window.GetAPI;
+        delete window.IsLmsPresent;
       } catch (e) {}
     };
-    bind(window);
-    try {
-      if (window.parent && window.parent !== window) bind(window.parent);
-      if (window.top && window.top !== window) bind(window.top);
-      if (window.opener) bind(window.opener);
-    } catch (e) {}
-    return () => {
-      try { delete window.API; delete window.API_Adapter; delete window.API_1484_11; } catch (e) {}
-    };
-  }, [scormAPI]);
+  }, [scormAPI, entryPoint]);
 
   const injectToIframe = () => {
     try {
       const win = iframeRef.current?.contentWindow;
-      if (win) {
-        win.API = scormAPI.api12;
-        win.API_Adapter = scormAPI.api12;
-        win.API_1484_11 = scormAPI.api2004;
-        win.findAPI = (w) => (w.API || w.API_1484_11 ? w : null);
-        win.IsLmsPresent = () => true;
-        console.log('✅ LMS API injected to iframe');
-      }
-    } catch (e) {}
+      if (!win) return;
+
+      win.API = scormAPI.api12;
+      win.API_Adapter = scormAPI.api12;
+      win.API_1484_11 = scormAPI.api2004;
+      win.findAPI = (startWin = win) => {
+        const findApiWindow = (searchWin, maxDepth = 7, depth = 0) => {
+          if (!searchWin || depth > maxDepth) return null;
+          try {
+            if (searchWin.API || searchWin.API_1484_11) return searchWin;
+            if (searchWin.parent && searchWin.parent !== searchWin) {
+              const found = findApiWindow(searchWin.parent, maxDepth, depth + 1);
+              if (found) return found;
+            }
+            if (searchWin.top && searchWin.top !== searchWin) {
+              const found = findApiWindow(searchWin.top, maxDepth, depth + 1);
+              if (found) return found;
+            }
+          } catch (e) {
+            return null;
+          }
+          return null;
+        };
+        const found = findApiWindow(startWin);
+        return found ? (found.API || found.API_1484_11) : null;
+      };
+      win.GetAPI = () => win.API || win.API_1484_11 || scormAPI.api12;
+      win.IsLmsPresent = () => true;
+      console.log('✅ LMS API injected to iframe');
+    } catch (e) {
+      console.warn('[SCORM] iframe API injection failed', e);
+    }
   };
 
   useEffect(() => {
@@ -435,13 +520,29 @@ const ScormPlayerPage = () => {
     const loadCourse = async () => {
       try {
         setLoading(true);
-        const [courseRes, scormRes] = await Promise.all([
-          fetch(`/api/courses/${courseId}`),
-          fetch(`/api/scorm/entry/${courseId}`),
-        ]);
-        if (!courseRes.ok || !scormRes.ok) throw new Error('Course not found.');
+        setError(null);
+        
+        console.log(`[SCORM] Loading courseId: ${courseId}`);
+        
+        // Fetch course
+        const courseRes = await fetch(`/api/courses/${courseId}`);
+        if (!courseRes.ok) {
+          throw new Error(`Course API failed: ${courseRes.status} ${courseRes.statusText}`);
+        }
         const courseData = await courseRes.json();
+        console.log('[SCORM] Course loaded:', courseData.title);
+
+        // Fetch SCORM entry point
+        const scormRes = await fetch(`/api/scorm/entry/${courseId}`);
+        if (!scormRes.ok) {
+          throw new Error(`SCORM entry API failed: ${scormRes.status} ${scormRes.statusText}`);
+        }
         const scormData = await scormRes.json();
+        if (!scormData.entryPoint) {
+          throw new Error('SCORM entry point is empty - file may not be uploaded');
+        }
+        console.log('[SCORM] Entry point:', scormData.entryPoint);
+
         setCourse(courseData);
         setEntryPoint(scormData.entryPoint);
 
@@ -464,6 +565,7 @@ const ScormPlayerPage = () => {
 
         setIsDataReady(true);
       } catch (err) {
+        console.error('[SCORM Error]', err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -524,11 +626,11 @@ const ScormPlayerPage = () => {
       </div>
 
       <div className="flex-1 relative bg-black">
-        {isDataReady && entryPoint ? (
+        {isDataReady && bridgeReady && iframeSrc ? (
           <iframe
             ref={iframeRef}
             id="scorm-frame"
-            src={entryPoint}
+            src={iframeSrc}
             title="LMS"
             onLoad={injectToIframe}
             className="w-full h-full border-0 focus:outline-none"

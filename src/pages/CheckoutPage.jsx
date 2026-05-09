@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useCourses } from '../context/CourseContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiChevronLeft, FiLock, FiInfo, FiCheckCircle } from 'react-icons/fi';
 
 const CheckoutPage = () => {
   const { cartItems, clearCart } = useCart();
   const { user } = useAuth();
+  const { refreshCourses } = useCourses();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -52,36 +54,60 @@ const CheckoutPage = () => {
       // Simulate a brief payment processing delay
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      // If user is logged in, enroll them in the purchased courses
-      if (user?.id) {
-        // Get the MongoDB _id values from cart items (courses from DB have _id)
-        const courseIds = cartItems
-          .map((item) => item._id || item.id)
-          .filter(Boolean);
-
-        if (courseIds.length > 0) {
-          const res = await fetch('/api/payments/enroll', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: user.id, courseIds }),
-          });
-
-          if (res.ok) {
-            const data = await res.json();
-            console.log('Enrolled:', data);
-          }
-        }
+      const courseIds = cartItems.map((item) => item._id || item.id).filter(Boolean);
+      if (!user?.id) {
+        console.warn('⚠️ User not logged in, skipping enrollment');
+        alert('Please log in to enroll in courses.');
+        return;
       }
 
-      // Collect course names for the success message
+      if (courseIds.length === 0) {
+        console.warn('⚠️ No valid course IDs found in cart');
+        alert('No valid courses found in cart for enrollment.');
+        return;
+      }
+
+      console.log('🔄 Starting enrollment process...', { userId: user.id, courseIds });
+      let enrollmentSuccess = false;
+
+      try {
+        const res = await fetch('/api/payments/enroll', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id, courseIds }),
+        });
+
+        console.log('Enrollment API response status:', res.status, res.statusText);
+
+        if (res.ok) {
+          const data = await res.json();
+          console.log('✅ Enrollment successful:', data);
+          enrollmentSuccess = true;
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          await refreshCourses();
+          console.log('🔄 Enrolled courses refreshed');
+        } else {
+          const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+          console.error('❌ Enrollment failed:', errorData);
+          alert('Enrollment failed: ' + (errorData.error || 'Unknown error'));
+        }
+      } catch (networkError) {
+        console.error('❌ Network error during enrollment:', networkError);
+        alert('Network error during enrollment. Please check your connection.');
+      }
+
+      if (!enrollmentSuccess) {
+        return;
+      }
+
       const names = cartItems.map((item) => item.title);
       setEnrolledCourseNames(names);
 
-      // Clear the cart
       if (clearCart) clearCart();
-
-      // Show success state
       setOrderSuccess(true);
+
+      console.log('🎉 Checkout completed successfully!');
+      console.log('Enrolled course names:', names);
     } catch (err) {
       console.error('Order submission error:', err);
       alert('Payment failed. Please try again.');
@@ -89,6 +115,14 @@ const CheckoutPage = () => {
       setIsProcessing(false);
     }
   };
+
+  useEffect(() => {
+    if (!orderSuccess) return;
+    const timer = setTimeout(() => {
+      navigate('/dashboard');
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [orderSuccess, navigate]);
 
   // ── Success Screen ───────────────────────────────────────────────────────────
   if (orderSuccess) {

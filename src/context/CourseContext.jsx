@@ -20,9 +20,11 @@ export const CourseProvider = ({ children }) => {
     if (!user?.id) return;
     try {
       setLoading(true);
+      console.log('[CourseContext] Fetching enrolled courses for user:', user.id);
       const res = await fetch(`/api/payments/enrolled/${user.id}`);
       if (res.ok) {
         const data = await res.json();
+        console.log('[CourseContext] Fetched enrolled courses:', data.length, 'courses');
         // Normalize progress for every course (safety net)
         const normalized = data.map(c => ({
           ...c,
@@ -30,6 +32,9 @@ export const CourseProvider = ({ children }) => {
           status: c.status || 'incomplete',
         }));
         setEnrolledCourses(normalized);
+        console.log('[CourseContext] Updated enrolled courses state:', normalized.length, 'courses');
+      } else {
+        console.error('[CourseContext] Failed to fetch enrolled courses:', res.status);
       }
     } catch (err) {
       console.error('[CourseContext] Error fetching courses:', err);

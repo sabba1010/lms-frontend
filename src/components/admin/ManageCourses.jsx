@@ -6,12 +6,12 @@ import {
 } from 'react-icons/fi';
 import Swal from 'sweetalert2';
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
-const API_URL = `${API_BASE}/api/courses`;
+const API_BASE = import.meta.env.VITE_API_URL || 'http://104.250.128.20/api';
+const API_URL = `${API_BASE}/courses`;
 
 const CATEGORY_OPTIONS = ['adult', 'children'];
 
-const SCORM_API = `${API_BASE}/api/scorm`;
+const SCORM_API = `${API_BASE}/scorm`;
 
 const EMPTY_FORM = {
   title: '',

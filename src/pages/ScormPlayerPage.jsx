@@ -128,6 +128,8 @@ const ScormPlayerPage = () => {
   const { user } = useAuth();
   const iframeRef = useRef(null);
   const completionSentRef = useRef(false);
+  const isLoadedRef = useRef(false);
+  const isInitializedRef = useRef(false);
 
   const [course, setCourse] = useState(null);
   const [entryPoint, setEntryPoint] = useState(null);
@@ -198,10 +200,23 @@ const ScormPlayerPage = () => {
 
   // ── SYNC TO BACKEND ────────────────────────────────────────────────────────
   const syncToBackend = async (forceProgress = null) => {
-    if (!user?.id) { console.warn('[SCORM] syncToBackend skipped — no user.id'); return; }
+    if (!user?.id || !isLoadedRef.current) return;
     try {
       const cmi = cmiRef.current;
-      const rawSuspendData = cmi['cmi.suspend_data'];
+      const rawSuspendData = cmi['cmi.suspend_data'] || '';
+      const status = cmi['cmi.core.lesson_status'] || cmi['cmi.completion_status'] || 'incomplete';
+      const location = cmi['cmi.core.lesson_location'] || cmi['cmi.location'] || '';
+      const progress = forceProgress ?? computeCurrentProgress();
+
+      // ── PROTECTION: Do NOT sync if everything is empty/default (initial state)
+      if (!forceProgress && 
+          rawSuspendData === '' && 
+          location === '' && 
+          (status === 'incomplete' || status === 'unknown') && 
+          progress === 0) {
+        console.log('[SCORM] Skipping sync: state is empty/initial');
+        return;
+      }
 
       // ── VERBOSE DEBUG ── Print everything so we can see what Rise actually sends
       console.group('%c[SCORM Debug] syncToBackend called', 'color: #00bcd4; font-weight: bold');
@@ -220,7 +235,6 @@ const ScormPlayerPage = () => {
           console.log('suspend_data is NOT JSON — raw string above');
         }
       }
-      const progress = forceProgress ?? computeCurrentProgress();
       console.log('computed progress:', progress, '%');
       console.groupEnd();
 
@@ -234,8 +248,8 @@ const ScormPlayerPage = () => {
         userId: user.id,
         courseId,
         suspendData: rawSuspendData,
-        lessonLocation: cmi['cmi.core.lesson_location'] || cmi['cmi.location'],
-        status: cmi['cmi.core.lesson_status'] || cmi['cmi.completion_status'],
+        lessonLocation: location,
+        status: status,
         sessionTime: sessionSeconds,
         progress,
         // Quiz score: try score.raw first, then parse from suspend_data (Rise stores quiz score there)
@@ -308,8 +322,9 @@ const ScormPlayerPage = () => {
     const api12 = {
       LMSInitialize: () => {
         addLog('🔌 SCORM 1.2 Init');
+        isInitializedRef.current = true;
         const hasData = cmiRef.current['cmi.suspend_data'] || cmiRef.current['cmi.core.lesson_location'];
-        cmiRef.current['cmi.core.entry'] = hasData ? 'resume' : 'ab-initio';
+        cmiRef.current['cmi.core.entry'] = (hasData && hasData !== '') ? 'resume' : 'ab-initio';
         return 'true';
       },
       LMSFinish: () => { syncToBackend(); addLog('🔌 Finish'); return 'true'; },
@@ -330,12 +345,18 @@ const ScormPlayerPage = () => {
         if (element === 'cmi.core.lesson_status') {
           onStatusSet(value);
         } else if (element === 'cmi.suspend_data') {
-          // Rise stores progress in suspend_data — parse and sync immediately
-          const p = parseRiseProgress(value);
-          console.log('[suspend_data → progress]', p);
-          syncToBackend(p !== null && p > 0 ? p : undefined);
+          console.log('[SCORM] suspend_data updated');
+          clearTimeout(window.__riseSyncTimer);
+          window.__riseSyncTimer = setTimeout(() => {
+            const latestSuspend = cmiRef.current['cmi.suspend_data'];
+            const p = parseRiseProgress(latestSuspend);
+            console.log('[Delayed suspend_data parse]', p);
+            if (isInitializedRef.current && latestSuspend && latestSuspend.length > 20) {
+              syncToBackend(p !== null && p > 0 ? p : undefined);
+            }
+          }, 1500);
         } else if (element === 'cmi.core.lesson_location' || element === 'cmi.core.score.raw') {
-          syncToBackend();
+          if (isInitializedRef.current) syncToBackend();
         }
         return 'true';
       },
@@ -353,8 +374,9 @@ const ScormPlayerPage = () => {
     const api2004 = {
       Initialize: () => {
         addLog('🔌 SCORM 2004 Init');
+        isInitializedRef.current = true;
         const hasData = cmiRef.current['cmi.suspend_data'] || cmiRef.current['cmi.location'];
-        cmiRef.current['cmi.entry'] = hasData ? 'resume' : 'ab-initio';
+        cmiRef.current['cmi.entry'] = (hasData && hasData !== '') ? 'resume' : 'ab-initio';
         return 'true';
       },
       Terminate: () => { syncToBackend(); addLog('🔌 Terminate'); return 'true'; },
@@ -376,12 +398,19 @@ const ScormPlayerPage = () => {
           onStatusSet(value);
         } else if (element === 'cmi.progress_measure' || element === 'cmi.score.scaled') {
           const p = Math.round(parseFloat(value) * 100);
-          if (!isNaN(p) && p > 0) syncToBackend(p);
+          if (isInitializedRef.current && !isNaN(p) && p > 0) syncToBackend(p);
         } else if (element === 'cmi.suspend_data') {
-          const p = parseRiseProgress(value);
-          syncToBackend(p !== null && p > 0 ? p : undefined);
+          console.log('[SCORM] 2004 suspend_data updated');
+          clearTimeout(window.__riseSyncTimer);
+          window.__riseSyncTimer = setTimeout(() => {
+            const latestSuspend = cmiRef.current['cmi.suspend_data'];
+            const p = parseRiseProgress(latestSuspend);
+            if (isInitializedRef.current && latestSuspend && latestSuspend.length > 20) {
+              syncToBackend(p !== null && p > 0 ? p : undefined);
+            }
+          }, 1500);
         } else {
-          syncToBackend();
+          if (isInitializedRef.current) syncToBackend();
         }
         return 'true';
       },
@@ -553,18 +582,34 @@ const ScormPlayerPage = () => {
           const suspRes = await fetch(`${API_BASE}/payments/suspend/${user.id}/${courseId}`);
           if (suspRes.ok) {
             const data = await suspRes.json();
-            cmiRef.current['cmi.suspend_data'] = data.suspendData || '';
-            cmiRef.current['cmi.core.lesson_location'] = data.lessonLocation || '';
-            cmiRef.current['cmi.location'] = data.lessonLocation || '';
-            cmiRef.current['cmi.core.lesson_status'] = data.status || 'incomplete';
-            cmiRef.current['cmi.completion_status'] = data.status || 'incomplete';
-            cmiRef.current['_last_synced_progress'] = data.progress || 0;
-            addLog(`📖 Restored ${data.progress || 0}%`);
+            // ONLY restore if meaningful data exists
+            if (data.suspendData) {
+              cmiRef.current['cmi.suspend_data'] = data.suspendData;
+            }
+            if (data.lessonLocation) {
+              cmiRef.current['cmi.core.lesson_location'] = data.lessonLocation;
+              cmiRef.current['cmi.location'] = data.lessonLocation;
+            }
+            if (data.status) {
+              cmiRef.current['cmi.core.lesson_status'] = data.status;
+              cmiRef.current['cmi.completion_status'] = data.status;
+            }
+            if (typeof data.progress === 'number') {
+              cmiRef.current['_last_synced_progress'] = data.progress;
+              addLog(`📖 Restored ${data.progress}%`);
+            }
           }
         }
 
+        isLoadedRef.current = true;
+
         // Auto-save every 15s using suspend_data for progress
-        autoSaveTimer = setInterval(() => syncToBackend(), 15000);
+        autoSaveTimer = setInterval(() => {
+          const suspend = cmiRef.current['cmi.suspend_data'];
+          if (suspend && suspend.length > 20) {
+            syncToBackend();
+          }
+        }, 15000);
 
         setIsDataReady(true);
       } catch (err) {

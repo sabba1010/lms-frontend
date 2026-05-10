@@ -554,48 +554,46 @@ const ScormPlayerPage = () => {
         
         console.log(`[SCORM] Loading courseId: ${courseId}`);
         
-        // Fetch course
-        const courseRes = await fetch(`${API_BASE}/courses/${courseId}`);
-        if (!courseRes.ok) {
-          throw new Error(`Course API failed: ${courseRes.status} ${courseRes.statusText}`);
-        }
-        const courseData = await courseRes.json();
-        console.log('[SCORM] Course loaded:', courseData.title);
+        // ── OPTIMIZATION: Parallel Fetch ──
+        // Fetch course details, entry point, and suspend data simultaneously
+        const [courseRes, scormRes, suspRes] = await Promise.all([
+          fetch(`${API_BASE}/courses/${courseId}`),
+          fetch(`${API_BASE}/scorm/entry/${courseId}`),
+          user?.id ? fetch(`${API_BASE}/payments/suspend/${user.id}/${courseId}`) : Promise.resolve(null)
+        ]);
 
-        // Fetch SCORM entry point
-        const scormRes = await fetch(`${API_BASE}/scorm/entry/${courseId}`);
-        if (!scormRes.ok) {
-          throw new Error(`SCORM entry API failed: ${scormRes.status} ${scormRes.statusText}`);
-        }
+        if (!courseRes.ok) throw new Error(`Course API failed: ${courseRes.status}`);
+        if (!scormRes.ok) throw new Error(`SCORM entry API failed: ${scormRes.status}`);
+
+        const courseData = await courseRes.json();
         const scormData = await scormRes.json();
+        
+        console.log('[SCORM] Data loaded:', courseData.title);
+
         if (!scormData.entryPoint) {
           throw new Error('SCORM entry point is empty - file may not be uploaded');
         }
-        console.log('[SCORM] Entry point:', scormData.entryPoint);
 
         setCourse(courseData);
         setEntryPoint(scormData.entryPoint);
 
-        if (user?.id) {
-          const suspRes = await fetch(`${API_BASE}/payments/suspend/${user.id}/${courseId}`);
-          if (suspRes.ok) {
-            const data = await suspRes.json();
-            // ONLY restore if meaningful data exists
-            if (data.suspendData) {
-              cmiRef.current['cmi.suspend_data'] = data.suspendData;
-            }
-            if (data.lessonLocation) {
-              cmiRef.current['cmi.core.lesson_location'] = data.lessonLocation;
-              cmiRef.current['cmi.location'] = data.lessonLocation;
-            }
-            if (data.status) {
-              cmiRef.current['cmi.core.lesson_status'] = data.status;
-              cmiRef.current['cmi.completion_status'] = data.status;
-            }
-            if (typeof data.progress === 'number') {
-              cmiRef.current['_last_synced_progress'] = data.progress;
-              addLog(`📖 Restored ${data.progress}%`);
-            }
+        // Restore suspend data if available
+        if (suspRes && suspRes.ok) {
+          const data = await suspRes.json();
+          if (data.suspendData) {
+            cmiRef.current['cmi.suspend_data'] = data.suspendData;
+          }
+          if (data.lessonLocation) {
+            cmiRef.current['cmi.core.lesson_location'] = data.lessonLocation;
+            cmiRef.current['cmi.location'] = data.lessonLocation;
+          }
+          if (data.status) {
+            cmiRef.current['cmi.core.lesson_status'] = data.status;
+            cmiRef.current['cmi.completion_status'] = data.status;
+          }
+          if (typeof data.progress === 'number') {
+            cmiRef.current['_last_synced_progress'] = data.progress;
+            addLog(`📖 Restored ${data.progress}%`);
           }
         }
 

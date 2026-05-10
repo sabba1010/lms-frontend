@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+//import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import ScrollToTop from './components/ScrollToTop';
 import HomePage from './pages/HomePage';
 import CoursesPage from './pages/CoursesPage';
@@ -23,7 +24,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 const AppRoutes = () => {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<HomePage />} />
@@ -46,7 +47,7 @@ const AppRoutes = () => {
         {/* SCORM player — opens the extracted SCORM package in an iframe */}
         <Route path="/scorm-player/:courseId" element={<ProtectedRoute><ScormPlayerPage /></ProtectedRoute>} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 };
 

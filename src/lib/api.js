@@ -1,8 +1,8 @@
 /**
  * Centralized API configuration.
  *
- * LOCAL DEV  → VITE_API_URL=http://104.250.128.20/api/api
- * PRODUCTION → VITE_API_URL=http://104.250.128.20/api
+ * LOCAL DEV  → VITE_API_URL=http://104.250.128.20:5000/api
+ * PRODUCTION → VITE_API_URL=http://104.250.128.20:5000
  *
  * সব API call এই BASE URL থেকে শুরু হয়।
  * Usage:

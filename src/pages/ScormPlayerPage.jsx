@@ -492,9 +492,7 @@ const ScormPlayerPage = () => {
     }
 
     if (entryPoint) {
-      // Ensure entryPoint is prefixed with backend URL if it's a relative path
-      const fullSrc = entryPoint.startsWith('http') ? entryPoint : `${BACKEND_URL}${entryPoint}`;
-      setIframeSrc(fullSrc);
+      setIframeSrc(entryPoint);
       setBridgeReady(true);
     }
 

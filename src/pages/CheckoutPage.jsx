@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCourses } from '../context/CourseContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiChevronLeft, FiLock, FiInfo, FiCheckCircle } from 'react-icons/fi';
+import API_BASE from '../lib/api';
 
 const CheckoutPage = () => {
   const { cartItems, clearCart } = useCart();
@@ -71,7 +72,7 @@ const CheckoutPage = () => {
       let enrollmentSuccess = false;
 
       try {
-        const res = await fetch('/api/payments/enroll', {
+        const res = await fetch(`${API_BASE}/payments/enroll`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: user.id, courseIds }),

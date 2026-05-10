@@ -5,8 +5,8 @@ import {
   FiUploadCloud
 } from 'react-icons/fi';
 import Swal from 'sweetalert2';
+import API_BASE from '../../lib/api';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://104.250.128.20/api';
 const API_URL = `${API_BASE}/courses`;
 
 const CATEGORY_OPTIONS = ['adult', 'children'];

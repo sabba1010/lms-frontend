@@ -7,8 +7,9 @@ import {
   FiMoreVertical
 } from 'react-icons/fi';
 import { useState, useEffect } from 'react';
+import API_BASE from '../../lib/api';
 
-const API_URL = '/api/stats';
+const API_URL = `${API_BASE}/stats`;
 
 const StatCard = ({ title, value, icon, color, trend }) => (
   <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useLayoutEffect, useMemo } from 're
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiMaximize2, FiMinimize2, FiLoader } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import API_BASE, { BACKEND_URL } from '../lib/api';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RISE SUSPEND_DATA PARSER
@@ -254,14 +255,14 @@ const ScormPlayerPage = () => {
       console.log('%c[SCORM] Sending progress to backend: ' + progress + '%', 'color: #4caf50; font-weight:bold');
 
       // Send to main endpoint
-      await fetch('/api/payments/suspend', {
+      await fetch(`${API_BASE}/payments/suspend`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
       // Also send to debug endpoint so backend terminal shows the raw data
-      fetch('/api/payments/debug-scorm', {
+      fetch(`${API_BASE}/payments/debug-scorm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -462,7 +463,9 @@ const ScormPlayerPage = () => {
     }
 
     if (entryPoint) {
-      setIframeSrc(entryPoint);
+      // Ensure entryPoint is prefixed with backend URL if it's a relative path
+      const fullSrc = entryPoint.startsWith('http') ? entryPoint : `${BACKEND_URL}${entryPoint}`;
+      setIframeSrc(fullSrc);
       setBridgeReady(true);
     }
 
@@ -525,7 +528,7 @@ const ScormPlayerPage = () => {
         console.log(`[SCORM] Loading courseId: ${courseId}`);
         
         // Fetch course
-        const courseRes = await fetch(`/api/courses/${courseId}`);
+        const courseRes = await fetch(`${API_BASE}/courses/${courseId}`);
         if (!courseRes.ok) {
           throw new Error(`Course API failed: ${courseRes.status} ${courseRes.statusText}`);
         }
@@ -533,7 +536,7 @@ const ScormPlayerPage = () => {
         console.log('[SCORM] Course loaded:', courseData.title);
 
         // Fetch SCORM entry point
-        const scormRes = await fetch(`/api/scorm/entry/${courseId}`);
+        const scormRes = await fetch(`${API_BASE}/scorm/entry/${courseId}`);
         if (!scormRes.ok) {
           throw new Error(`SCORM entry API failed: ${scormRes.status} ${scormRes.statusText}`);
         }
@@ -547,7 +550,7 @@ const ScormPlayerPage = () => {
         setEntryPoint(scormData.entryPoint);
 
         if (user?.id) {
-          const suspRes = await fetch(`/api/payments/suspend/${user.id}/${courseId}`);
+          const suspRes = await fetch(`${API_BASE}/payments/suspend/${user.id}/${courseId}`);
           if (suspRes.ok) {
             const data = await suspRes.json();
             cmiRef.current['cmi.suspend_data'] = data.suspendData || '';

@@ -8,8 +8,9 @@ import StudentAnalytics from '../components/company/StudentAnalytics';
 import ExploreCourses from '../components/company/ExploreCourses';
 import MyLicenses from '../components/company/MyLicenses';
 import EditAccount from '../components/dashboard/EditAccount';
+import API_BASE from '../lib/api';
 
-const COMPANY_API = '/api/company';
+const COMPANY_API = `${API_BASE}/company`;
 
 const CompanyDashboard = () => {
   const navigate = useNavigate();

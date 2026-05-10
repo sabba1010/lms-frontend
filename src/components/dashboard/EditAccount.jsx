@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
 import { FiCamera, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
+import API_BASE from '../../lib/api';
 
 const EditAccount = () => {
   const { user, setUser } = useAuth();
@@ -46,7 +46,7 @@ const EditAccount = () => {
         updateData.password = formData.newPassword;
       }
 
-      const res = await fetch(`/api/users/${user.id}`, {
+      const res = await fetch(`${API_BASE}/users/${user.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

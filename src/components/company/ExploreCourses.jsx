@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FiSearch, FiShoppingCart, FiInfo, FiPlus, FiMinus, FiCheck, FiLoader } from 'react-icons/fi';
+import API_BASE from '../../lib/api';
 
 const ExploreCourses = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -14,8 +15,8 @@ const ExploreCourses = () => {
     const fetchCourses = async () => {
       try {
         setLoading(true);
-        // Using the proxy configured in vite.config.js
-        const response = await fetch('/api/courses');
+        // Using centralized API config — goes directly to backend
+        const response = await fetch(`${API_BASE}/courses`);
         if (!response.ok) throw new Error('Failed to fetch courses');
         const data = await response.json();
         setCourseList(data);

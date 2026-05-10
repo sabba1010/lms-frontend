@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
+import API_BASE from '../lib/api';
 
 const CourseContext = createContext();
 
@@ -21,7 +22,7 @@ export const CourseProvider = ({ children }) => {
     try {
       setLoading(true);
       console.log('[CourseContext] Fetching enrolled courses for user:', user.id);
-      const res = await fetch(`/api/payments/enrolled/${user.id}`);
+      const res = await fetch(`${API_BASE}/payments/enrolled/${user.id}`);
       if (res.ok) {
         const data = await res.json();
         console.log('[CourseContext] Fetched enrolled courses:', data.length, 'courses');

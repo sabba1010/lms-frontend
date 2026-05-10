@@ -5,8 +5,9 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 // Make sure the path below matches your project structure
 import logo from '../assets/logo.png';
+import API_BASE from '../lib/api';
 // API URL
-const API_URL = '/api/courses';
+const API_URL = `${API_BASE}/courses`;
 
 const Navbar = () => {
   const { cartCount } = useCart();

@@ -4,8 +4,9 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useCart } from '../context/CartContext';
 import Swal from 'sweetalert2';
+import API_BASE from '../lib/api';
 // API URL
-const API_URL = '/api/courses';
+const API_URL = `${API_BASE}/courses`;
 
 // Import your local banner asset
 import sectionBg from '../assets/section-bg-23.png';

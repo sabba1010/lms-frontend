@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FiSearch, FiPlus, FiUserPlus, FiArrowRight, FiCheckCircle, FiClock, FiX } from 'react-icons/fi';
 import { courses as defaultCourses } from '../../data/courses';
+import API_BASE from '../../lib/api';
 
 const ManageStudents = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -26,7 +27,7 @@ const ManageStudents = () => {
 
     try {
       setLoading(true);
-      const response = await fetch(`/api/company/students/${userId}`);
+      const response = await fetch(`${API_BASE}/company/students/${userId}`);
       if (!response.ok) throw new Error('Failed to fetch students');
       const data = await response.json();
       setStudents(data);
@@ -42,7 +43,7 @@ const ManageStudents = () => {
      const fetchInitialData = async () => {
        try {
          // Fetch real courses
-         const coursesRes = await fetch('/api/courses');
+         const coursesRes = await fetch(`${API_BASE}/courses`);
          if (coursesRes.ok) {
            const coursesData = await coursesRes.json();
            setAvailableCourses(coursesData);
@@ -74,7 +75,7 @@ const ManageStudents = () => {
 
     try {
       // 1. Link student in backend
-      const response = await fetch('/api/company/add-student', {
+      const response = await fetch(`${API_BASE}/company/add-student`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -96,7 +97,7 @@ const ManageStudents = () => {
         // Find course ID
         const course = availableCourses.find(c => c.title === newStudent.course);
         if (course) {
-           const enrollRes = await fetch('/api/payments/enroll', {
+           const enrollRes = await fetch(`${API_BASE}/payments/enroll`, {
              method: 'POST',
              headers: { 'Content-Type': 'application/json' },
              body: JSON.stringify({
@@ -141,7 +142,7 @@ const ManageStudents = () => {
 
       const cId = course._id || course.id;
       // Proceed with enrollment directly
-      const response = await fetch('/api/payments/enroll', {
+      const response = await fetch(`${API_BASE}/payments/enroll`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

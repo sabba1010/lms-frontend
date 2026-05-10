@@ -1,13 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FiShoppingCart, FiEye, FiSearch, FiX } from 'react-icons/fi';
-// API URL
-const API_URL = '/api/courses';
-
 import { useCart } from '../../context/CartContext';
 import Swal from 'sweetalert2';
+import API_BASE, { BACKEND_URL } from '../../lib/api';
+// API URL
+const API_URL = `${API_BASE}/courses`;
 
 const formatPrice = (price) => Number(String(price).replace(/[^0-9.]/g, ''));
+
+const getImageUrl = (url) => {
+  if (!url) return 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=400&q=80';
+  if (url.startsWith('http') || url.startsWith('data:')) return url;
+  return `${BACKEND_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+};
 
 const renderStars = (rating) => {
   return Array.from({ length: 5 }).map((_, i) => (
@@ -187,7 +193,7 @@ const CoursesSection = ({ initialSearch = '', initialCategory = 'all', showFilte
                 {/* Image Container */}
                 <div className="relative h-48 overflow-visible">
                   <img
-                    src={c.image || c.img}
+                    src={getImageUrl(c.image || c.img)}
                     alt={c.title}
                     className="w-full h-full object-cover"
                   />
@@ -261,7 +267,7 @@ const CoursesSection = ({ initialSearch = '', initialCategory = 'all', showFilte
               {/* Product Image */}
               <div className="md:w-1/2 aspect-video md:aspect-auto">
                 <img 
-                  src={selectedCourse.image || selectedCourse.img} 
+                  src={getImageUrl(selectedCourse.image || selectedCourse.img)} 
                   alt={selectedCourse.title} 
                   className="w-full h-full object-cover"
                 />

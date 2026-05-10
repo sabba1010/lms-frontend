@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { FiSearch, FiTrash2, FiFilter, FiUsers, FiUser, FiBriefcase, FiEye, FiX, FiClock, FiCheckCircle, FiCalendar, FiLoader } from 'react-icons/fi';
 import Swal from 'sweetalert2';
+import API_BASE from '../../lib/api';
 
-const API_URL = '/api/users';
+const API_URL = `${API_BASE}/users`;
 
 const ManageUsers = () => {
   const [searchTerm, setSearchTerm] = useState('');

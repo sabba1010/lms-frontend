@@ -11,7 +11,9 @@ import {
   FiChevronRight
 } from 'react-icons/fi';
 
-const API_URL = '/api/stats';
+import API_BASE from '../../lib/api';
+
+const API_URL = `${API_BASE}/stats`;
 
 const AdminAnalytics = () => {
   const [statsData, setStatsData] = useState(null);
@@ -26,7 +28,7 @@ const AdminAnalytics = () => {
       if (!statsData) setLoading(true);
       else setChartLoading(true);
 
-      let url = filterDays ? `/api/stats?days=${filterDays}` : '/api/stats';
+      let url = filterDays ? `${API_BASE}/stats?days=${filterDays}` : `${API_BASE}/stats`;
       url += url.includes('?') ? `&offset=${monthOffset}` : `?offset=${monthOffset}`;
       
       const res = await fetch(url);
